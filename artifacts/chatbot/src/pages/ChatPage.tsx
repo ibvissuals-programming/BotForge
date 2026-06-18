@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Settings, ArrowRight, Link, Check } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { encodeConfig, getConfigFromUrl, buildShareableUrl, hexToHsl } from "@/lib/configUrl";
+import businesses from "@/data/businesses";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -48,7 +49,19 @@ export default function ChatPage() {
     if (savedConfig) {
       setConfig(JSON.parse(savedConfig));
     } else {
-      setIsConfigOpen(true);
+      const defaultBiz = businesses[0];
+      const defaultConfig: BotConfig = {
+        bizName: defaultBiz.bizName,
+        bizType: defaultBiz.bizType,
+        services: defaultBiz.services,
+        location: defaultBiz.location,
+        howToOrder: defaultBiz.howToOrder,
+        instagram: defaultBiz.instagram,
+        personality: defaultBiz.personality,
+        welcomeMsg: defaultBiz.welcomeMsg,
+        accentColor: defaultBiz.accentColor,
+      };
+      setConfig(defaultConfig);
     }
   }, []);
 
