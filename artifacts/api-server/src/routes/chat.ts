@@ -1,12 +1,11 @@
 import { Router, type IRouter } from "express";
-import { GoogleGenAI } from "@google/genai";
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-if (!process.env.GEMINI_API_KEY) {
-  logger.warn("GEMINI_API_KEY is not set — chat endpoint will fail at runtime");
+if (!process.env.GROQ_API_KEY) {
+  logger.warn("GROQ_API_KEY is not set — chat endpoint will fail at runtime");
 }
 
 function buildSystemPrompt(config: {
@@ -52,36 +51,44 @@ router.post("/chat/send", async (req, res): Promise<void> => {
 
   const { messages, config } = parsed.data;
 
-  if (!process.env.GEMINI_API_KEY) {
-    res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+  if (!process.env.GROQ_API_KEY) {
+    res.status(500).json({ error: "GROQ_API_KEY is not configured on the server." });
     return;
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const systemPrompt = buildSystemPrompt(config);
 
-    const contents = messages.map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    const groqMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ];
 
-    const systemInstruction = buildSystemPrompt(config);
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
-      contents,
-      config: {
-        systemInstruction,
-        maxOutputTokens: 400,
-        temperature: 0.8,
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: groqMessages,
+        max_tokens: 400,
+        temperature: 0.8,
+      }),
     });
 
-    const content = response.text ?? "Sorry, I could not process that. Please try again.";
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText);
+    }
+
+    const data = await response.json() as { choices: { message: { content: string } }[] };
+    const content = data.choices[0]?.message?.content ?? "Sorry, I could not process that. Please try again.";
 
     res.json({ content });
   } catch (err) {
-    req.log.error({ err }, "Gemini API error");
+    req.log.error({ err }, "Groq API error");
     const message = err instanceof Error ? err.message : "Unknown error";
     res.status(500).json({ error: `AI service error: ${message}` });
   }
