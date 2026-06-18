@@ -39,19 +39,31 @@ const QUICK_REPLIES: Record<string, string[]> = {
 
 function DeveloperCTA() {
   return (
-    <div className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <p className="font-syne font-bold text-[16px] text-foreground leading-snug">
+    <div
+      className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-3 rounded-2xl p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500"
+      style={{
+        background: "linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(79,70,229,0.10) 100%)",
+        border: "1px solid rgba(139,92,246,0.25)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        boxShadow: "0 0 32px rgba(124,58,237,0.15), inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
+      <p className="font-syne font-bold text-[16px] leading-snug" style={{ color: "rgba(233,213,255,0.95)" }}>
         Your business deserves more than missed messages ✨
       </p>
-      <p className="text-[13px] text-muted-foreground">Let's build yours 👇</p>
+      <p className="text-[13px]" style={{ color: "rgba(196,181,253,0.7)" }}>Let's build yours 👇</p>
       <a
         href={DEVELOPER_WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75 w-full justify-center mt-1"
-        style={{ backgroundColor: "#b5517a" }}
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white w-full justify-center mt-1 transition-all duration-200 hover:scale-[1.03] hover:shadow-lg active:scale-[0.97]"
+        style={{
+          background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+          boxShadow: "0 4px 20px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
+        }}
       >
-        Chat with the Developer 💬
+        🚀 Get Your Own AI Assistant
       </a>
     </div>
   );
