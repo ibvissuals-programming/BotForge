@@ -15,8 +15,13 @@ function buildSystemPrompt(config: {
   services?: string | null;
   location?: string | null;
   howToOrder?: string | null;
+  instagram?: string | null;
   personality?: string | null;
 }): string {
+  const instagramLine = config.instagram
+    ? `\nINSTAGRAM: ${config.instagram}`
+    : "";
+
   return `You are a customer service assistant for ${config.bizName}${config.bizType ? `, a ${config.bizType} business` : ""}.
 
 SERVICES & PRICING:
@@ -26,7 +31,7 @@ LOCATION & AVAILABILITY:
 ${config.location || "Contact us for location details."}
 
 HOW TO ORDER/BOOK:
-${config.howToOrder || "Message us directly to place an order or book."}
+${config.howToOrder || "Message us directly to place an order or book."}${instagramLine}
 
 PERSONALITY: ${config.personality || "Friendly and helpful"}
 

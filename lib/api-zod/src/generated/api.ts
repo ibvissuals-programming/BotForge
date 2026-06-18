@@ -32,7 +32,9 @@ export const SendChatMessageBody = zod.object({
   "location": zod.string().nullish(),
   "howToOrder": zod.string().nullish(),
   "personality": zod.string().nullish(),
-  "welcomeMsg": zod.string().nullish()
+  "welcomeMsg": zod.string().nullish(),
+  "instagram": zod.string().nullish(),
+  "accentColor": zod.string().nullish()
 })
 })
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Settings, ArrowRight, Link, Check } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
+import { encodeConfig, getConfigFromUrl, buildShareableUrl, hexToHsl } from "@/lib/configUrl";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -26,29 +27,6 @@ const QUICK_REPLIES: Record<string, string[]> = {
   "photography": ["Packages & prices", "Book a shoot", "Turnaround time", "Location"],
   "other": ["What do you offer?", "Pricing info", "How to order?", "Contact details"]
 };
-
-function encodeConfig(cfg: BotConfig): string {
-  return btoa(encodeURIComponent(JSON.stringify(cfg)));
-}
-
-function decodeConfig(encoded: string): BotConfig | null {
-  try {
-    return JSON.parse(decodeURIComponent(atob(encoded)));
-  } catch {
-    return null;
-  }
-}
-
-function getConfigFromUrl(): BotConfig | null {
-  const hash = window.location.hash;
-  const match = hash.match(/[#&]?c=([^&]*)/);
-  if (match && match[1]) return decodeConfig(match[1]);
-  return null;
-}
-
-function buildShareableUrl(cfg: BotConfig): string {
-  return `${window.location.origin}${window.location.pathname}#c=${encodeConfig(cfg)}`;
-}
 
 export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
@@ -140,8 +118,13 @@ export default function ChatPage() {
 
   if (!config && !isConfigOpen) return <div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>;
 
+  const accentHsl = config?.accentColor ? hexToHsl(config.accentColor) : null;
+
   return (
     <div className="flex justify-center bg-black min-h-screen dark">
+      {accentHsl && (
+        <style>{`:root { --primary: ${accentHsl}; }`}</style>
+      )}
       <div className="w-full max-w-[480px] h-[100dvh] flex flex-col bg-background relative shadow-2xl overflow-hidden border-x border-border">
         {/* Header */}
         {config && (

@@ -35,6 +35,10 @@ export interface BotConfig {
   personality?: string | null;
   /** @nullable */
   welcomeMsg?: string | null;
+  /** @nullable */
+  instagram?: string | null;
+  /** @nullable */
+  accentColor?: string | null;
 }
 
 export interface ChatMessageInput {

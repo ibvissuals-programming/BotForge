@@ -92,6 +92,10 @@ components:
           type: ["string", "null"]
         welcomeMsg:
           type: ["string", "null"]
+        instagram:
+          type: ["string", "null"]
+        accentColor:
+          type: ["string", "null"]
     ChatMessageInput:
       type: object
       required: [messages, config]
