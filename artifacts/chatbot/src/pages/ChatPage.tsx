@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const WHATSAPP_URL = "https://wa.me/2348163716199";
+const DEVELOPER_WHATSAPP_URL = "https://wa.me/2348056683398";
 const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation|connect|contact|reach|whatsapp|link|number)\b/i;
 const FREE_MSG_LIMIT = 5;
 const DEMO_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -36,18 +37,21 @@ const QUICK_REPLIES: Record<string, string[]> = {
   "other": ["What do you offer?", "Pricing info", "How to order?", "Contact details"]
 };
 
-function WhatsAppCTA({ message }: { message: string }) {
+function DeveloperCTA() {
   return (
-    <div className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-line">{message}</p>
+    <div className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <p className="font-syne font-bold text-[16px] text-foreground leading-snug">
+        Your business deserves more than missed messages ✨
+      </p>
+      <p className="text-[13px] text-muted-foreground">Let's build yours 👇</p>
       <a
-        href={WHATSAPP_URL}
+        href={DEVELOPER_WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75 w-full justify-center"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75 w-full justify-center mt-1"
         style={{ backgroundColor: "#b5517a" }}
       >
-        Chat on WhatsApp 💬
+        Chat with the Developer 💬
       </a>
     </div>
   );
@@ -277,13 +281,8 @@ export default function ChatPage() {
             </div>
           )}
 
-          {isTrialEnded && (
-            <WhatsAppCTA message={"Enjoying this? Get a full 24-hour demo for your business 💕\nContact us on WhatsApp to unlock 👇"} />
-          )}
-
-          {isDemoEnded && (
-            <WhatsAppCTA message={"Your 24-hour demo has ended ✨\nReady to get this for your business?\nLet's talk 👇"} />
-          )}
+          {isTrialEnded && <DeveloperCTA />}
+          {isDemoEnded && <DeveloperCTA />}
         </div>
 
         {/* Input Bar */}
