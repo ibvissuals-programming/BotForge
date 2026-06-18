@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: chat
+    description: Business chatbot operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /chat/send:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message and get an AI response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +65,52 @@ components:
           type: string
       required:
         - status
-
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+    BotConfig:
+      type: object
+      required: [bizName]
+      properties:
+        bizName:
+          type: string
+        bizType:
+          type: string
+        services:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        howToOrder:
+          type: ["string", "null"]
+        personality:
+          type: ["string", "null"]
+        welcomeMsg:
+          type: ["string", "null"]
+    ChatMessageInput:
+      type: object
+      required: [messages, config]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        config:
+          $ref: "#/components/schemas/BotConfig"
+    ChatResponse:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+    ChatError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
