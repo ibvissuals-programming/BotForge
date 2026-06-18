@@ -68,7 +68,7 @@ router.post("/chat/send", async (req, res): Promise<void> => {
     const systemInstruction = buildSystemPrompt(config);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       contents,
       config: {
         systemInstruction,
