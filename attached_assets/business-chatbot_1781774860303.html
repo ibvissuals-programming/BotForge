@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Business Chat Assistant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #7c6af7;
+    --accent-soft: rgba(124,106,247,0.12);
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --user-bubble: #7c6af7;
+    --bot-bubble: #1f1f1f;
+    --radius: 18px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .header-info { flex: 1; min-width: 0; }
+
+  .header-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-status {
+    font-size: 12px;
+    color: #4ade80;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 1px;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .powered-by {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.3;
+  }
+
+  .powered-by span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 0; }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 82%;
+    animation: fadeUp 0.25s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.bot { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 11px 15px;
+    border-radius: var(--radius);
+    font-size: 14.5px;
+    line-height: 1.55;
+    word-break: break-word;
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message.bot .bubble {
+    background: var(--bot-bubble);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .message-time {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  /* Typing indicator */
+  .typing-bubble {
+    background: var(--bot-bubble);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    border-bottom-left-radius: 4px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: typing 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Welcome card */
+  .welcome-card {
+    background: var(--accent-soft);
+    border: 1px solid rgba(124,106,247,0.25);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .welcome-card .emoji { font-size: 28px; margin-bottom: 8px; }
+
+  .welcome-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .welcome-card p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Quick replies */
+  .quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .quick-reply {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .quick-reply:hover, .quick-reply:active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Input area */
+  .input-area {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .input-wrap {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    padding: 4px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrap:focus-within { border-color: var(--accent); }
+
+  textarea {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14.5px;
+    resize: none;
+    max-height: 100px;
+    padding: 9px 0;
+    line-height: 1.4;
+  }
+
+  textarea::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { background: #6a58e0; transform: scale(1.05); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+
+  .send-btn svg { width: 18px; height: 18px; fill: white; }
+
+  /* Config panel */
+  .config-panel {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+
+  .config-panel.hidden { display: none; }
+
+  .config-sheet {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 28px 20px 36px;
+    width: 100%;
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+
+  .config-sheet h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .config-sheet p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus,
+  .field textarea:focus { border-color: var(--accent); }
+
+  .field textarea { resize: vertical; min-height: 100px; }
+
+  .field select option { background: var(--surface2); }
+
+  .api-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .api-row input { flex: 1; }
+
+  .toggle-key-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .save-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 15px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+  }
+
+  .save-btn:hover { background: #6a58e0; }
+
+  .settings-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 17px;
+    transition: all 0.2s;
+  }
+
+  .settings-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .hint a { color: var(--accent); text-decoration: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 20px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Config Panel -->
+<div class="config-panel" id="configPanel">
+  <div class="config-sheet">
+    <h2>⚙️ Setup Your Bot</h2>
+    <p>Fill in the business details. Change this for every new client — no new code needed.</p>
+
+    <div class="section-label">API Key</div>
+    <div class="field">
+      <label>Gemini API Key</label>
+      <div class="api-row">
+        <input type="password" id="apiKey" placeholder="Paste your Gemini API key here">
+        <button class="toggle-key-btn" onclick="toggleKey()">👁</button>
+      </div>
+      <p class="hint">Get a free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> — no card needed.</p>
+    </div>
+
+    <div class="section-label">Business Info</div>
+    <div class="field">
+      <label>Business Name</label>
+      <input type="text" id="bizName" placeholder="e.g. Adaeze Wigs & Beauty">
+    </div>
+
+    <div class="field">
+      <label>Business Type</label>
+      <select id="bizType">
+        <option value="wig">Wig / Hair Business</option>
+        <option value="fashion">Fashion / Clothing</option>
+        <option value="food">Food / Catering</option>
+        <option value="beauty">Beauty / Skincare</option>
+        <option value="photography">Photography</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Services & Prices</label>
+      <textarea id="services" placeholder="e.g.&#10;Wig revamping - ₦8,000&#10;Deep cleaning - ₦5,000&#10;Full install - ₦15,000&#10;Restyling - ₦6,000"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Location & Availability</label>
+      <input type="text" id="location" placeholder="e.g. Lagos Island, available Mon-Sat 9am-7pm">
+    </div>
+
+    <div class="field">
+      <label>How to Order / Book</label>
+      <input type="text" id="howToOrder" placeholder="e.g. Send a voice note or photo to book an appointment">
+    </div>
+
+    <div class="field">
+      <label>Bot Personality (optional)</label>
+      <input type="text" id="personality" placeholder="e.g. Friendly, uses emojis, speaks casually">
+    </div>
+
+    <div class="field">
+      <label>Welcome Message</label>
+      <input type="text" id="welcomeMsg" placeholder="e.g. Hi love! Welcome to Adaeze Wigs ✨">
+    </div>
+
+    <button class="save-btn" onclick="saveConfig()">Launch Chatbot →</button>
+  </div>
+</div>
+
+<!-- Main Chat UI -->
+<div class="header">
+  <div class="avatar" id="avatarEl">A</div>
+  <div class="header-info">
+    <div class="header-name" id="headerName">Business Assistant</div>
+    <div class="header-status">
+      <div class="status-dot"></div>
+      Always online
+    </div>
+  </div>
+  <div class="powered-by">Powered by<br><span>AI</span></div>
+  <button class="settings-btn" onclick="openConfig()" title="Settings">⚙️</button>
+</div>
+
+<div class="messages" id="messages"></div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="userInput" placeholder="Type your message..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  </button>
+</div>
+
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────
+  let config = {
+    apiKey: '',
+    bizName: 'Business Assistant',
+    bizType: 'other',
+    services: '',
+    location: '',
+    howToOrder: '',
+    personality: 'Friendly and helpful',
+    welcomeMsg: 'Hi! How can I help you today?'
+  };
+
+  let conversationHistory = [];
+  let isTyping = false;
+
+  // ─── INIT ─────────────────────────────────────────────────
+  window.onload = () => {
+    const saved = localStorage.getItem('botConfig');
+    if (saved) {
+      config = JSON.parse(saved);
+      applyConfig();
+      renderWelcome();
+    }
+  };
+
+  function applyConfig() {
+    document.getElementById('headerName').textContent = config.bizName;
+    document.getElementById('page-title').textContent = config.bizName;
+    document.getElementById('avatarEl').textContent = config.bizName.charAt(0).toUpperCase();
+    document.getElementById('configPanel').classList.add('hidden');
+  }
+
+  function renderWelcome() {
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = '';
+    conversationHistory = [];
+
+    const card = document.createElement('div');
+    card.className = 'welcome-card';
+    card.innerHTML = `
+      <div class="emoji">${getEmoji(config.bizType)}</div>
+      <h2>${config.bizName}</h2>
+      <p>${config.welcomeMsg}</p>
+    `;
+    msgs.appendChild(card);
+
+    const quickReplies = getQuickReplies(config.bizType);
+    if (quickReplies.length) {
+      const qr = document.createElement('div');
+      qr.className = 'quick-replies';
+      quickReplies.forEach(q => {
+        const btn = document.createElement('button');
+        btn.className = 'quick-reply';
+        btn.textContent = q;
+        btn.onclick = () => { document.getElementById('userInput').value = q; sendMessage(); };
+        qr.appendChild(btn);
+      });
+      msgs.appendChild(qr);
+    }
+  }
+
+  function getEmoji(type) {
+    const map = { wig: '💇‍♀️', fashion: '👗', food: '🍽️', beauty: '✨', photography: '📸', other: '💼' };
+    return map[type] || '💼';
+  }
+
+  function getQuickReplies(type) {
+    const map = {
+      wig: ['What are your prices?', 'How do I book?', 'Do you do installs?', 'Where are you located?'],
+      fashion: ['See collections', 'Pricing info', 'Do you do custom?', 'Delivery options'],
+      food: ['See menu', 'Do you deliver?', 'How to order?', 'Pricing'],
+      beauty: ['Services & prices', 'Book appointment', 'Products available', 'Location'],
+      photography: ['Packages & prices', 'Book a shoot', 'Turnaround time', 'Location'],
+      other: ['What do you offer?', 'Pricing info', 'How to order?', 'Contact details']
+    };
+    return map[type] || map.other;
+  }
+
+  // ─── CONFIG PANEL ─────────────────────────────────────────
+  function openConfig() {
+    document.getElementById('configPanel').classList.remove('hidden');
+    if (config.apiKey) document.getElementById('apiKey').value = config.apiKey;
+    if (config.bizName) document.getElementById('bizName').value = config.bizName;
+    if (config.bizType) document.getElementById('bizType').value = config.bizType;
+    if (config.services) document.getElementById('services').value = config.services;
+    if (config.location) document.getElementById('location').value = config.location;
+    if (config.howToOrder) document.getElementById('howToOrder').value = config.howToOrder;
+    if (config.personality) document.getElementById('personality').value = config.personality;
+    if (config.welcomeMsg) document.getElementById('welcomeMsg').value = config.welcomeMsg;
+  }
+
+  function toggleKey() {
+    const input = document.getElementById('apiKey');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  function saveConfig() {
+    const key = document.getElementById('apiKey').value.trim();
+    const name = document.getElementById('bizName').value.trim();
+    if (!key) { alert('Please enter your Gemini API key.'); return; }
+    if (!name) { alert('Please enter a business name.'); return; }
+
+    config = {
+      apiKey: key,
+      bizName: name,
+      bizType: document.getElementById('bizType').value,
+      services: document.getElementById('services').value.trim(),
+      location: document.getElementById('location').value.trim(),
+      howToOrder: document.getElementById('howToOrder').value.trim(),
+      personality: document.getElementById('personality').value.trim() || 'Friendly and helpful',
+      welcomeMsg: document.getElementById('welcomeMsg').value.trim() || `Hi! Welcome to ${name}`
+    };
+
+    localStorage.setItem('botConfig', JSON.stringify(config));
+    applyConfig();
+    renderWelcome();
+  }
+
+  // ─── CHAT ─────────────────────────────────────────────────
+  function buildSystemPrompt() {
+    return `You are a customer service assistant for ${config.bizName}, a ${config.bizType} business.
+
+SERVICES & PRICING:
+${config.services || 'Ask the owner for current pricing.'}
+
+LOCATION & AVAILABILITY:
+${config.location || 'Contact us for location details.'}
+
+HOW TO ORDER/BOOK:
+${config.howToOrder || 'Message us directly to place an order or book.'}
+
+PERSONALITY: ${config.personality}
+
+RULES:
+- Always stay in character as ${config.bizName}'s assistant
+- Be warm, helpful and conversational
+- If asked something you don't know, say "Let me connect you with the owner for that 😊"
+- Never make up prices or details not listed above
+- Keep replies concise and natural — this is a chat, not an essay
+- Use emojis occasionally to match the tone`;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text || isTyping) return;
+
+    if (!config.apiKey) { openConfig(); return; }
+
+    input.value = '';
+    autoResize(input);
+    addMessage('user', text);
+    conversationHistory.push({ role: 'user', parts: [{ text }] });
+
+    showTyping();
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: buildSystemPrompt() }] },
+            contents: conversationHistory,
+            generationConfig: { temperature: 0.8, maxOutputTokens: 300 }
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.error) throw new Error(data.error.message);
+
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't process that. Try again!";
+      conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
+      hideTyping();
+      addMessage('bot', reply);
+
+    } catch (err) {
+      hideTyping();
+      addMessage('bot', `⚠️ Error: ${err.message}. Check your API key in settings.`);
+    }
+  }
+
+  function addMessage(role, text) {
+    const msgs = document.getElementById('messages');
+    const wrap = document.createElement('div');
+    wrap.className = `message ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const time = document.createElement('div');
+    time.className = 'message-time';
+    time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  let typingEl = null;
+
+  function showTyping() {
+    isTyping = true;
+    document.getElementById('sendBtn').disabled = true;
+    const msgs = document.getElementById('messages');
+    const wrap = document.createElement('div');
+    wrap.className = 'message bot';
+    wrap.id = 'typingIndicator';
+    wrap.innerHTML = `<div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function hideTyping() {
+    isTyping = false;
+    document.getElementById('sendBtn').disabled = false;
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+</script>
+</body>
+</html>
