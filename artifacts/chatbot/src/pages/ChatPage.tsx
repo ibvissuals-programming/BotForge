@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const WHATSAPP_URL = "https://wa.me/2348163716199";
-const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation)\b/i;
-const FREE_MSG_LIMIT = 10;
+const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation|connect|contact|reach|whatsapp|link|number)\b/i;
+const FREE_MSG_LIMIT = 5;
 const DEMO_DURATION_MS = 24 * 60 * 60 * 1000;
 const DEMO_EXPIRY_KEY = "botDemoExpiry";
 
