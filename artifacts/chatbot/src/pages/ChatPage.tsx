@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+const WHATSAPP_URL = "https://wa.me/2348163716199";
+const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation)\b/i;
+
+function mentionsBooking(text: string): boolean {
+  return BOOKING_KEYWORDS.test(text);
+}
+
 const BIZ_EMOJIS: Record<string, string> = {
   "wig": "💇‍♀️",
   "fashion": "👗",
@@ -214,6 +221,17 @@ export default function ChatPage() {
               <span className="text-[10px] text-muted-foreground mt-1.5 px-1 font-medium opacity-70">
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
+              {msg.role === "assistant" && mentionsBooking(msg.content) && (
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75"
+                  style={{ backgroundColor: "#b5517a" }}
+                >
+                  Book on WhatsApp 💬
+                </a>
+              )}
             </div>
           ))}
 
