@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Settings, ArrowRight, Link, Check } from "lucide-react";
+import { ArrowRight, Link, Check } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
-import { encodeConfig, getConfigFromUrl, buildShareableUrl, hexToHsl } from "@/lib/configUrl";
+import { buildShareableUrl, hexToHsl } from "@/lib/configUrl";
 import businesses from "@/data/businesses";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const WHATSAPP_URL = "https://wa.me/2348163716199";
 const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation)\b/i;
+const FREE_MSG_LIMIT = 10;
+const DEMO_DURATION_MS = 24 * 60 * 60 * 1000;
+const DEMO_EXPIRY_KEY = "botDemoExpiry";
 
 function mentionsBooking(text: string): boolean {
   return BOOKING_KEYWORDS.test(text);
 }
+
+type AccessTier = "free" | "trial-ended" | "demo" | "demo-ended";
 
 const BIZ_EMOJIS: Record<string, string> = {
   "wig": "💇‍♀️",
@@ -36,41 +36,90 @@ const QUICK_REPLIES: Record<string, string[]> = {
   "other": ["What do you offer?", "Pricing info", "How to order?", "Contact details"]
 };
 
+function WhatsAppCTA({ message }: { message: string }) {
+  return (
+    <div className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <p className="text-[15px] text-foreground leading-relaxed">{message}</p>
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75 w-full justify-center"
+        style={{ backgroundColor: "#b5517a" }}
+      >
+        Chat on WhatsApp 💬
+      </a>
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [accessTier, setAccessTier] = useState<AccessTier>("free");
   const scrollRef = useRef<HTMLDivElement>(null);
   const sendMessageMutation = useSendChatMessage();
 
+  // Determine access tier from URL and localStorage
   useEffect(() => {
-    const urlConfig = getConfigFromUrl();
-    if (urlConfig) {
-      setConfig(urlConfig);
-      localStorage.setItem("botConfig", JSON.stringify(urlConfig));
-      return;
-    }
-    const savedConfig = localStorage.getItem("botConfig");
-    if (savedConfig) {
-      setConfig(JSON.parse(savedConfig));
+    const params = new URLSearchParams(window.location.search);
+    const isDemo = params.get("demo") === "true";
+
+    if (isDemo) {
+      const stored = localStorage.getItem(DEMO_EXPIRY_KEY);
+      const now = Date.now();
+      if (stored) {
+        const expiry = parseInt(stored, 10);
+        if (now >= expiry) {
+          setAccessTier("demo-ended");
+        } else {
+          setAccessTier("demo");
+        }
+      } else {
+        localStorage.setItem(DEMO_EXPIRY_KEY, String(now + DEMO_DURATION_MS));
+        setAccessTier("demo");
+      }
     } else {
-      const defaultBiz = businesses[0];
-      const defaultConfig: BotConfig = {
-        bizName: defaultBiz.bizName,
-        bizType: defaultBiz.bizType,
-        services: defaultBiz.services,
-        location: defaultBiz.location,
-        howToOrder: defaultBiz.howToOrder,
-        instagram: defaultBiz.instagram,
-        personality: defaultBiz.personality,
-        welcomeMsg: defaultBiz.welcomeMsg,
-        accentColor: defaultBiz.accentColor,
-      };
-      setConfig(defaultConfig);
+      setAccessTier("free");
     }
   }, []);
+
+  // Re-check demo expiry periodically
+  useEffect(() => {
+    if (accessTier !== "demo") return;
+    const interval = setInterval(() => {
+      const stored = localStorage.getItem(DEMO_EXPIRY_KEY);
+      if (stored && Date.now() >= parseInt(stored, 10)) {
+        setAccessTier("demo-ended");
+        clearInterval(interval);
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [accessTier]);
+
+  // Load business config
+  useEffect(() => {
+    const defaultBiz = businesses[0];
+    const defaultConfig: BotConfig = {
+      bizName: defaultBiz.bizName,
+      bizType: defaultBiz.bizType,
+      services: defaultBiz.services,
+      location: defaultBiz.location,
+      howToOrder: defaultBiz.howToOrder,
+      instagram: defaultBiz.instagram,
+      personality: defaultBiz.personality,
+      welcomeMsg: defaultBiz.welcomeMsg,
+      accentColor: defaultBiz.accentColor,
+    };
+    setConfig(defaultConfig);
+  }, []);
+
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const isTrialEnded = accessTier === "free" && userMsgCount >= FREE_MSG_LIMIT;
+  const isDemoEnded = accessTier === "demo-ended";
+  const isLocked = isTrialEnded || isDemoEnded;
 
   const handleCopyLink = useCallback(() => {
     if (!config) return;
@@ -85,29 +134,10 @@ export default function ChatPage() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, sendMessageMutation.isPending]);
-
-  const handleSaveConfig = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newConfig: BotConfig = {
-      bizName: formData.get("bizName") as string,
-      bizType: formData.get("bizType") as string,
-      services: formData.get("services") as string,
-      location: formData.get("location") as string,
-      howToOrder: formData.get("howToOrder") as string,
-      personality: formData.get("personality") as string,
-      welcomeMsg: formData.get("welcomeMsg") as string,
-    };
-    setConfig(newConfig);
-    localStorage.setItem("botConfig", JSON.stringify(newConfig));
-    window.history.replaceState(null, "", `#c=${encodeConfig(newConfig)}`);
-    setIsConfigOpen(false);
-    setMessages([]);
-  };
+  }, [messages, sendMessageMutation.isPending, isTrialEnded, isDemoEnded]);
 
   const handleSend = (text: string = input) => {
-    if (!text.trim() || !config) return;
+    if (!text.trim() || !config || isLocked) return;
 
     const userMsg: ChatMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
@@ -115,10 +145,7 @@ export default function ChatPage() {
     setInput("");
 
     sendMessageMutation.mutate({
-      data: {
-        messages: newMessages,
-        config: config
-      }
+      data: { messages: newMessages, config }
     }, {
       onSuccess: (data) => {
         setMessages([...newMessages, { role: "assistant", content: data.content }]);
@@ -136,9 +163,13 @@ export default function ChatPage() {
     }
   };
 
-  if (!config && !isConfigOpen) return <div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>;
+  if (!config) return (
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      Loading...
+    </div>
+  );
 
-  const accentHsl = config?.accentColor ? hexToHsl(config.accentColor) : null;
+  const accentHsl = config.accentColor ? hexToHsl(config.accentColor) : null;
 
   return (
     <div className="flex justify-center bg-black min-h-screen dark">
@@ -146,42 +177,38 @@ export default function ChatPage() {
         <style>{`:root { --primary: ${accentHsl}; }`}</style>
       )}
       <div className="w-full max-w-[480px] h-[100dvh] flex flex-col bg-background relative shadow-2xl overflow-hidden border-x border-border">
+
         {/* Header */}
-        {config && (
-          <header className="flex-none h-16 border-b border-border flex items-center justify-between px-4 z-10 bg-background/95 backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-syne font-bold text-lg">
-                {config.bizName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="font-syne font-bold text-[17px] leading-tight text-foreground">{config.bizName}</h1>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Always online
-                </div>
+        <header className="flex-none h-16 border-b border-border flex items-center justify-between px-4 z-10 bg-background/95 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-syne font-bold text-lg">
+              {config.bizName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="font-syne font-bold text-[17px] leading-tight text-foreground">{config.bizName}</h1>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Always online
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCopyLink}
-                className="text-muted-foreground hover:text-foreground rounded-full transition-colors"
-                title="Copy shareable link"
-                data-testid="button-copy-link"
-              >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link className="w-4 h-4" />}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsConfigOpen(true)} className="text-muted-foreground hover:text-foreground rounded-full" data-testid="button-settings">
-                <Settings className="w-5 h-5" />
-              </Button>
-            </div>
-          </header>
-        )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCopyLink}
+              className="text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              title="Copy shareable link"
+              data-testid="button-copy-link"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link className="w-4 h-4" />}
+            </Button>
+          </div>
+        </header>
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar pb-24">
-          {config && messages.length === 0 && (
+          {messages.length === 0 && (
             <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="w-16 h-16 rounded-full bg-card border border-border flex items-center justify-center text-3xl mb-4 shadow-sm">
                 {BIZ_EMOJIS[config.bizType || "other"] || BIZ_EMOJIS["other"]}
@@ -190,12 +217,11 @@ export default function ChatPage() {
               <p className="text-muted-foreground text-center mb-6 max-w-[280px] text-sm">
                 {config.welcomeMsg || "Hi there! How can I help you today?"}
               </p>
-              
               <div className="w-full flex flex-col gap-2">
                 {(QUICK_REPLIES[config.bizType || "other"] || QUICK_REPLIES["other"]).map((reply, i) => (
-                  <Button 
-                    key={i} 
-                    variant="outline" 
+                  <Button
+                    key={i}
+                    variant="outline"
                     className="w-full justify-start h-auto py-3 px-4 text-left border-border bg-card hover:bg-muted hover:border-primary/50 transition-colors"
                     onClick={() => handleSend(reply)}
                     data-testid={`button-quick-reply-${i}`}
@@ -209,17 +235,17 @@ export default function ChatPage() {
 
           {messages.map((msg, i) => (
             <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-              <div 
+              <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
-                  msg.role === "user" 
-                    ? "bg-primary text-primary-foreground rounded-br-sm" 
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
                     : "bg-card text-card-foreground border border-border rounded-bl-sm"
                 }`}
               >
                 {msg.content}
               </div>
               <span className="text-[10px] text-muted-foreground mt-1.5 px-1 font-medium opacity-70">
-                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
               {msg.role === "assistant" && mentionsBooking(msg.content) && (
                 <a
@@ -244,10 +270,18 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+
+          {isTrialEnded && (
+            <WhatsAppCTA message={"Enjoying this? Get a full 24-hour demo for your business 💕\nContact us on WhatsApp to unlock 👇"} />
+          )}
+
+          {isDemoEnded && (
+            <WhatsAppCTA message={"Your 24-hour demo has ended ✨\nReady to get this for your business?\nLet's talk 👇"} />
+          )}
         </div>
 
         {/* Input Bar */}
-        {config && (
+        {!isLocked && (
           <div className="flex-none p-3 border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10">
             <div className="flex items-end gap-2 bg-card border border-border rounded-[24px] p-1.5 pr-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
               <Textarea
@@ -272,88 +306,8 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-
-        <Sheet open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-          <SheetContent side="bottom" className="h-[90dvh] bg-background border-t border-border rounded-t-2xl sm:max-w-[480px] mx-auto p-0">
-            <ScrollArea className="h-full">
-              <div className="p-6">
-                <SheetHeader className="mb-6 text-left">
-                  <SheetTitle className="font-syne text-2xl font-bold">Bot Configuration</SheetTitle>
-                  <SheetDescription>
-                    Set up your business profile to customize the AI responses.
-                  </SheetDescription>
-                </SheetHeader>
-                
-                <form onSubmit={handleSaveConfig} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="bizName">Business Name *</Label>
-                    <Input id="bizName" name="bizName" defaultValue={config?.bizName || ""} required placeholder="e.g. Bella's Boutique" className="bg-card border-border" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="bizType">Business Type *</Label>
-                    <Select name="bizType" defaultValue={config?.bizType || "other"}>
-                      <SelectTrigger className="bg-card border-border">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="wig">Wig / Hair</SelectItem>
-                        <SelectItem value="fashion">Fashion / Clothing</SelectItem>
-                        <SelectItem value="food">Food / Catering</SelectItem>
-                        <SelectItem value="beauty">Beauty / Skincare</SelectItem>
-                        <SelectItem value="photography">Photography</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="services">Services & Prices</Label>
-                    <Textarea 
-                      id="services" 
-                      name="services" 
-                      defaultValue={config?.services || ""} 
-                      placeholder="e.g. Frontal Install: $120, Box Braids: $150..." 
-                      className="bg-card border-border min-h-[80px]" 
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location & Availability</Label>
-                    <Input id="location" name="location" defaultValue={config?.location || ""} placeholder="e.g. Atlanta GA, Mon-Sat 9am-6pm" className="bg-card border-border" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="howToOrder">How to Order / Book</Label>
-                    <Input id="howToOrder" name="howToOrder" defaultValue={config?.howToOrder || ""} placeholder="e.g. Link in bio to book via Acuity" className="bg-card border-border" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="personality">Bot Personality (Optional)</Label>
-                    <Input id="personality" name="personality" defaultValue={config?.personality || ""} placeholder="e.g. Friendly, professional, use heart emojis" className="bg-card border-border" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="welcomeMsg">Welcome Message</Label>
-                    <Textarea 
-                      id="welcomeMsg" 
-                      name="welcomeMsg" 
-                      defaultValue={config?.welcomeMsg || ""} 
-                      placeholder="e.g. Hey babe! Welcome to Bella's Boutique. How can I assist?" 
-                      className="bg-card border-border min-h-[60px]" 
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full h-12 text-base font-bold font-syne rounded-xl mt-6">
-                    Launch Chatbot <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-              </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
       </div>
-      
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
