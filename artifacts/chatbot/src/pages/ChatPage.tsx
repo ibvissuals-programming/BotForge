@@ -39,7 +39,7 @@ const QUICK_REPLIES: Record<string, string[]> = {
 function WhatsAppCTA({ message }: { message: string }) {
   return (
     <div className="mx-auto w-full max-w-[340px] mt-4 mb-2 flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <p className="text-[15px] text-foreground leading-relaxed">{message}</p>
+      <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-line">{message}</p>
       <a
         href={WHATSAPP_URL}
         target="_blank"
@@ -59,6 +59,8 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [accessTier, setAccessTier] = useState<AccessTier>("free");
+  const [sentCount, setSentCount] = useState(0);
+  const sentCountRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sendMessageMutation = useSendChatMessage();
 
@@ -116,8 +118,7 @@ export default function ChatPage() {
     setConfig(defaultConfig);
   }, []);
 
-  const userMsgCount = messages.filter((m) => m.role === "user").length;
-  const isTrialEnded = accessTier === "free" && userMsgCount >= FREE_MSG_LIMIT;
+  const isTrialEnded = accessTier === "free" && sentCount >= FREE_MSG_LIMIT;
   const isDemoEnded = accessTier === "demo-ended";
   const isLocked = isTrialEnded || isDemoEnded;
 
@@ -137,7 +138,12 @@ export default function ChatPage() {
   }, [messages, sendMessageMutation.isPending, isTrialEnded, isDemoEnded]);
 
   const handleSend = (text: string = input) => {
-    if (!text.trim() || !config || isLocked) return;
+    if (!text.trim() || !config) return;
+    if (isDemoEnded) return;
+    if (accessTier === "free" && sentCountRef.current >= FREE_MSG_LIMIT) return;
+
+    sentCountRef.current += 1;
+    setSentCount(sentCountRef.current);
 
     const userMsg: ChatMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
