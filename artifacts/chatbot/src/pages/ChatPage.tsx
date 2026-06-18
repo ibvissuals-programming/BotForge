@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Send, Settings, Circle, Play, Loader2, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Settings, ArrowRight, Link, Check } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,15 +27,45 @@ const QUICK_REPLIES: Record<string, string[]> = {
   "other": ["What do you offer?", "Pricing info", "How to order?", "Contact details"]
 };
 
+function encodeConfig(cfg: BotConfig): string {
+  return btoa(encodeURIComponent(JSON.stringify(cfg)));
+}
+
+function decodeConfig(encoded: string): BotConfig | null {
+  try {
+    return JSON.parse(decodeURIComponent(atob(encoded)));
+  } catch {
+    return null;
+  }
+}
+
+function getConfigFromUrl(): BotConfig | null {
+  const hash = window.location.hash;
+  const match = hash.match(/[#&]?c=([^&]*)/);
+  if (match && match[1]) return decodeConfig(match[1]);
+  return null;
+}
+
+function buildShareableUrl(cfg: BotConfig): string {
+  return `${window.location.origin}${window.location.pathname}#c=${encodeConfig(cfg)}`;
+}
+
 export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sendMessageMutation = useSendChatMessage();
 
   useEffect(() => {
+    const urlConfig = getConfigFromUrl();
+    if (urlConfig) {
+      setConfig(urlConfig);
+      localStorage.setItem("botConfig", JSON.stringify(urlConfig));
+      return;
+    }
     const savedConfig = localStorage.getItem("botConfig");
     if (savedConfig) {
       setConfig(JSON.parse(savedConfig));
@@ -43,6 +73,15 @@ export default function ChatPage() {
       setIsConfigOpen(true);
     }
   }, []);
+
+  const handleCopyLink = useCallback(() => {
+    if (!config) return;
+    const url = buildShareableUrl(config);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [config]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -64,6 +103,7 @@ export default function ChatPage() {
     };
     setConfig(newConfig);
     localStorage.setItem("botConfig", JSON.stringify(newConfig));
+    window.history.replaceState(null, "", `#c=${encodeConfig(newConfig)}`);
     setIsConfigOpen(false);
     setMessages([]);
   };
@@ -118,9 +158,21 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsConfigOpen(true)} className="text-muted-foreground hover:text-foreground rounded-full" data-testid="button-settings">
-              <Settings className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyLink}
+                className="text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                title="Copy shareable link"
+                data-testid="button-copy-link"
+              >
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsConfigOpen(true)} className="text-muted-foreground hover:text-foreground rounded-full" data-testid="button-settings">
+                <Settings className="w-5 h-5" />
+              </Button>
+            </div>
           </header>
         )}
 
