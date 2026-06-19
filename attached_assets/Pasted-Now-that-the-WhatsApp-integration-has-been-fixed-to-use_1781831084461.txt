@@ -1,0 +1,73 @@
+Now that the WhatsApp integration has been fixed to use business.whatsappPhone and a reusable buildWhatsAppLink utility, I want to implement the full BotForge Lead Capture + AI Handoff system.
+
+Current state:
+- WhatsApp links are now dynamic per business (from businesses.ts)
+- Utility function buildWhatsAppLink exists
+- Chat system already supports multi-turn conversation
+- AI (Groq) is already used for chat responses
+- Trial + Demo modes already exist
+- WhatsApp CTA already triggers after booking/contact intent
+
+NEW FEATURE GOAL:
+Turn BotForge into a lead-generation system where every WhatsApp click carries AI-generated context AND is optionally stored as a structured lead.
+
+CORE REQUIREMENTS:
+
+1. Lead Summary Generation (REQUIRED)
+Before opening WhatsApp:
+- Use existing chat history
+- Call backend endpoint /api/chat/summarize
+- Generate a structured summary containing:
+  - customerName (if available)
+  - servicesInterested
+  - bookingIntent (low/medium/high)
+  - questionsAsked
+  - conversationSummary (short human-readable text)
+
+2. WhatsApp Prefill Upgrade
+- Use buildWhatsAppLink(business.whatsappPhone, summaryText)
+- Ensure message is:
+  - readable in WhatsApp
+  - formatted with line breaks
+  - emoji-friendly
+- Customer must be able to edit before sending
+
+3. Lead Object Creation (NEW)
+Create a reusable lead object BEFORE redirecting:
+
+{
+  id,
+  businessId,
+  timestamp,
+  customerName,
+  servicesInterested,
+  bookingIntent,
+  conversationLength,
+  summaryText
+}
+
+4. Optional Persistence Layer
+- Store lead in backend (in-memory or database if available)
+- Create POST /api/leads endpoint
+- Ensure it does not block WhatsApp redirect (non-blocking async)
+
+5. UX REQUIREMENTS
+- Button shows loading state: “Preparing your details…”
+- Then opens WhatsApp immediately after summary is generated
+- Never delay user for more than ~2 seconds
+- Always fallback to plain WhatsApp link if API fails
+
+6. MULTI-BUSINESS RULE
+- Everything must use businesses.ts
+- NO hardcoded business names or phone numbers
+- Works for Styled By Fortune, Rossy Cakes, and future clients automatically
+
+7. CLEAN ARCHITECTURE
+- Keep summarization logic in backend only
+- Keep WhatsApp link generation in frontend utility
+- Keep lead formatting reusable for future dashboard
+
+OUTPUT REQUIREMENTS:
+- Show all modified files
+- Show full data flow from chat → summary → lead object → WhatsApp redirect
+- Ensure TypeScript types are clean and reusable
