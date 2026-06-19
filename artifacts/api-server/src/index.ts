@@ -1,6 +1,15 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
+// ── Secret guard ─────────────────────────────────────────────────────────────
+if (!process.env.GROQ_API_KEY) {
+  logger.warn(
+    "GROQ_API_KEY missing — add it in Secrets (Replit sidebar → Secrets) before the chat endpoint will work",
+  );
+} else {
+  logger.info("GROQ_API_KEY present — AI chat enabled");
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
