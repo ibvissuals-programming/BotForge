@@ -200,6 +200,7 @@ export default function ChatPage() {
   const [copied, setCopied] = useState(false);
   const [accessTier, setAccessTier] = useState<AccessTier>("free");
   const [sentCount, setSentCount] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const sentCountRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sendMessageMutation = useSendChatMessage();
@@ -362,7 +363,7 @@ export default function ChatPage() {
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar pb-24"
+          className={`flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar ${messages.length > 0 && showSuggestions ? "pb-56" : "pb-24"}`}
         >
           {messages.length === 0 && (
             <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -447,27 +448,67 @@ export default function ChatPage() {
 
         {/* Input Bar */}
         {!isLocked && (
-          <div className="flex-none p-3 border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10">
-            <div className="flex items-end gap-2 bg-card border border-border rounded-[24px] p-1.5 pr-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                className="min-h-[40px] max-h-[100px] bg-transparent border-0 focus-visible:ring-0 resize-none py-2.5 px-3 text-[15px] scrollbar-hide"
-                disabled={sendMessageMutation.isPending}
-                rows={1}
-                data-testid="input-message"
-              />
-              <Button
-                size="icon"
-                className="w-9 h-9 rounded-full shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                onClick={() => handleSend()}
-                disabled={!input.trim() || sendMessageMutation.isPending}
-                data-testid="button-send"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+          <div className="flex-none border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10">
+
+            {/* Quick suggestions tray — accessible throughout the conversation */}
+            {messages.length > 0 && (
+              <div className="px-3 pt-2">
+                <button
+                  onClick={() => setShowSuggestions((s) => !s)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors select-none"
+                >
+                  <span>Quick questions</span>
+                  <span
+                    className="inline-block transition-transform duration-200"
+                    style={{ transform: showSuggestions ? "rotate(180deg)" : "rotate(0deg)" }}
+                  >
+                    ▾
+                  </span>
+                </button>
+                {showSuggestions && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 pb-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                    {(QUICK_REPLIES[config.bizType || "other"] || QUICK_REPLIES["other"]).map(
+                      (reply, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            handleSend(reply);
+                            setShowSuggestions(false);
+                          }}
+                          className="text-[12px] px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted hover:border-primary/50 text-foreground transition-colors"
+                        >
+                          {reply}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Text input row */}
+            <div className="p-3 pt-2">
+              <div className="flex items-end gap-2 bg-card border border-border rounded-[24px] p-1.5 pr-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a message..."
+                  className="min-h-[40px] max-h-[100px] bg-transparent border-0 focus-visible:ring-0 resize-none py-2.5 px-3 text-[15px] scrollbar-hide"
+                  disabled={sendMessageMutation.isPending}
+                  rows={1}
+                  data-testid="input-message"
+                />
+                <Button
+                  size="icon"
+                  className="w-9 h-9 rounded-full shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() || sendMessageMutation.isPending}
+                  data-testid="button-send"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

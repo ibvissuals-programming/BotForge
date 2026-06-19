@@ -158,7 +158,7 @@ router.post("/chat/summarize", async (req, res): Promise<void> => {
 Given a chat conversation, extract key information and return a JSON object with EXACTLY these fields:
 
 {
-  "summaryText": "Formatted WhatsApp prefill message the customer will send. Structure:\n*New Inquiry – ${config.bizName}*\n\nInterested In:\n• [service or N/A]\n\nQuestions Asked:\n• [question or N/A]\n\nReady to Book: [Yes / Not yet / Unknown]\n\n_Sent via ${config.bizName} chatbot_ 👇",
+  "summaryText": "A short, natural message written in first person, as if the customer typed it themselves on WhatsApp. Start with Hi! Mention what they are interested in and any questions they had. Sound friendly and human — no headers, no bullet points, no markdown, no structured labels. 2–3 sentences max. Example: Hi! I was chatting with your assistant and I am interested in lace cleaning and restyling. Wanted to ask about pricing and availability 😊",
   "customerName": "string or null",
   "servicesInterested": ["array of strings"],
   "bookingIntent": "low or medium or high",
@@ -166,6 +166,7 @@ Given a chat conversation, extract key information and return a JSON object with
 }
 
 Rules:
+- summaryText must sound like a real person wrote it — casual, warm, first-person
 - bookingIntent: "high" = wants to book now, "medium" = interested/asking about booking, "low" = just browsing/asking questions
 - If no service is mentioned, use ["General inquiry"]
 - Output valid JSON only. No markdown fences, no explanation.`;
