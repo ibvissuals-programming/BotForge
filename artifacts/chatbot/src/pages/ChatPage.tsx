@@ -455,8 +455,14 @@ export default function ChatPage() {
               <div className="px-3 pt-2">
                 <button
                   onClick={() => setShowSuggestions((s) => !s)}
-                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors select-none"
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold select-none transition-all active:scale-95"
+                  style={{
+                    background: `hsla(${accentHsl}, 0.15)`,
+                    color: accentColor,
+                    border: `1px solid hsla(${accentHsl}, 0.3)`,
+                  }}
                 >
+                  <span>💬</span>
                   <span>Quick questions</span>
                   <span
                     className="inline-block transition-transform duration-200"
