@@ -1,0 +1,114 @@
+I want to implement the next major BotForge upgrade and also fix the current WhatsApp integration.
+
+Current BotForge Stack:
+
+- React + TypeScript
+- Node.js + TypeScript
+- Tailwind CSS
+- Groq AI
+- Replit deployment
+- Multi-business architecture using businesses.ts
+- Trial mode (5 messages)
+- Developer CTA already redesigned as a purple/indigo glassmorphism card with the text:
+  "🚀 Get Your Own AI Assistant"
+
+First, fix the WhatsApp integration.
+
+WHATSAPP FIX:
+
+- Audit the current WhatsApp CTA implementation.
+- Ensure it works correctly for both regular WhatsApp and WhatsApp Business users.
+- Use the standard wa.me format:
+  https://wa.me/<number>
+- If a prefilled message is included, use:
+  https://wa.me/<number>?text=<encoded_message>
+- Remove any WhatsApp Business-specific wording, assumptions, redirects, or branding.
+- Update CTA text to something neutral such as:
+  - "💬 Continue on WhatsApp"
+  - "📲 Message on WhatsApp"
+- Store only the phone number in business configuration and generate links dynamically.
+- Verify compatibility on mobile and desktop.
+
+MAIN FEATURE: AI → BUSINESS OWNER HANDOFF
+
+Current problem:
+Customers chat with the AI assistant, then click WhatsApp and the business owner receives a fresh message with no context. Customers must repeat everything.
+
+Objective:
+Create a seamless handoff from AI conversation → WhatsApp conversation.
+
+Requirements:
+
+1. Lead Summary Generation
+   Before WhatsApp opens, automatically generate a concise lead summary from the conversation history.
+
+Extract when available:
+
+- Customer name
+- Services interested in
+- Preferred booking date/time
+- Budget
+- Main questions asked
+- Customer intent
+
+2. Prefilled WhatsApp Message
+   When the customer clicks the WhatsApp CTA, automatically populate WhatsApp with the generated summary.
+
+Example:
+
+New Customer Inquiry
+
+Interested In:
+• Lace Cleaning
+• Wig Restyling
+
+Questions Asked:
+• Pricing
+• Location
+• Payment Options
+
+Continue conversation below:
+
+The customer should still be able to edit the message before sending.
+
+3. Smart Fallback Logic
+
+- Never send an empty message.
+- If limited information exists, generate the best summary possible from available chat history.
+
+4. Reusable Multi-Business Design
+
+- Must work for every business inside businesses.ts.
+- Do not hardcode Styled By Fortune.
+- Every future BotForge client should automatically inherit this feature.
+
+5. Lead Object Creation
+   Create a reusable lead object before WhatsApp opens:
+
+{
+customerName,
+servicesInterested,
+questionsAsked,
+bookingIntent,
+conversationLength,
+timestamp
+}
+
+Design this so it can later be saved to a database, admin dashboard, analytics system, or notification system.
+
+6. User Experience Goals
+
+- Customer feels the AI already informed the business owner.
+- Business owner immediately understands the inquiry.
+- Reduce repeated conversations.
+- Improve conversion from AI chat → WhatsApp.
+
+7. Code Quality
+
+- Follow existing BotForge architecture.
+- Use TypeScript best practices.
+- Keep code modular and reusable.
+- Show all files modified.
+- Explain the complete data flow from conversation history → lead summary → WhatsApp message generation → CTA click.
+
+Before making changes, inspect the current WhatsApp CTA implementation and explain any issues found. Then implement the full solution.

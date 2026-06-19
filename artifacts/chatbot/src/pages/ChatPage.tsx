@@ -6,7 +6,8 @@ import businesses from "@/data/businesses";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-const WHATSAPP_URL = "https://wa.me/2348163716199";
+// ── Constants ────────────────────────────────────────────────────────────────
+
 const DEVELOPER_WHATSAPP_URL = "https://wa.me/2348056683398";
 const BOOKING_KEYWORDS = /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation|connect|contact|reach|whatsapp|link|number)\b/i;
 const FREE_MSG_LIMIT = 5;
@@ -36,6 +37,71 @@ const QUICK_REPLIES: Record<string, string[]> = {
   "photography": ["Packages & prices", "Book a shoot", "Turnaround time", "Location"],
   "other": ["What do you offer?", "Pricing info", "How to order?", "Contact details"]
 };
+
+// ── WhatsApp Handoff Button ──────────────────────────────────────────────────
+// Generates a lead summary via /api/chat/summarize and opens a prefilled
+// wa.me link so the business owner receives instant conversation context.
+
+interface WhatsAppHandoffButtonProps {
+  messages: ChatMessage[];
+  config: BotConfig;
+  phone: string;
+  accentColor: string;
+}
+
+function WhatsAppHandoffButton({ messages, config, phone, accentColor }: WhatsAppHandoffButtonProps) {
+  const [isSummarizing, setIsSummarizing] = useState(false);
+
+  const handleClick = async () => {
+    if (isSummarizing) return;
+    setIsSummarizing(true);
+
+    const fallbackUrl = `https://wa.me/${phone}`;
+
+    try {
+      const res = await fetch("/api/chat/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages, config }),
+      });
+
+      if (res.ok) {
+        const data = await res.json() as { whatsappText?: string };
+        const text = data.whatsappText?.trim() ?? "";
+        const url = text
+          ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+          : fallbackUrl;
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isSummarizing}
+      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold text-white transition-all hover:opacity-90 active:opacity-75 disabled:opacity-60 cursor-pointer"
+      style={{ backgroundColor: accentColor }}
+    >
+      {isSummarizing ? (
+        <>
+          <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+          Preparing summary…
+        </>
+      ) : (
+        "💬 Continue on WhatsApp"
+      )}
+    </button>
+  );
+}
+
+// ── Developer CTA ────────────────────────────────────────────────────────────
 
 function DeveloperCTA() {
   return (
@@ -69,8 +135,11 @@ function DeveloperCTA() {
   );
 }
 
+// ── Chat Page ────────────────────────────────────────────────────────────────
+
 export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
+  const [bizPhone, setBizPhone] = useState("2348163716199");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -90,11 +159,7 @@ export default function ChatPage() {
       const now = Date.now();
       if (stored) {
         const expiry = parseInt(stored, 10);
-        if (now >= expiry) {
-          setAccessTier("demo-ended");
-        } else {
-          setAccessTier("demo");
-        }
+        setAccessTier(now >= expiry ? "demo-ended" : "demo");
       } else {
         localStorage.setItem(DEMO_EXPIRY_KEY, String(now + DEMO_DURATION_MS));
         setAccessTier("demo");
@@ -117,21 +182,21 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, [accessTier]);
 
-  // Load business config
+  // Load business config from businesses.ts
   useEffect(() => {
-    const defaultBiz = businesses[0];
-    const defaultConfig: BotConfig = {
-      bizName: defaultBiz.bizName,
-      bizType: defaultBiz.bizType,
-      services: defaultBiz.services,
-      location: defaultBiz.location,
-      howToOrder: defaultBiz.howToOrder,
-      instagram: defaultBiz.instagram,
-      personality: defaultBiz.personality,
-      welcomeMsg: defaultBiz.welcomeMsg,
-      accentColor: defaultBiz.accentColor,
-    };
-    setConfig(defaultConfig);
+    const biz = businesses[0];
+    setBizPhone(biz.phone ?? "2348163716199");
+    setConfig({
+      bizName: biz.bizName,
+      bizType: biz.bizType,
+      services: biz.services,
+      location: biz.location,
+      howToOrder: biz.howToOrder,
+      instagram: biz.instagram,
+      personality: biz.personality,
+      welcomeMsg: biz.welcomeMsg,
+      accentColor: biz.accentColor,
+    });
   }, []);
 
   const isTrialEnded = accessTier === "free" && sentCount >= FREE_MSG_LIMIT;
@@ -166,9 +231,7 @@ export default function ChatPage() {
     setMessages(newMessages);
     setInput("");
 
-    sendMessageMutation.mutate({
-      data: { messages: newMessages, config }
-    }, {
+    sendMessageMutation.mutate({ data: { messages: newMessages, config } }, {
       onSuccess: (data) => {
         setMessages([...newMessages, { role: "assistant", content: data.content }]);
       },
@@ -191,7 +254,8 @@ export default function ChatPage() {
     </div>
   );
 
-  const accentHsl = config.accentColor ? hexToHsl(config.accentColor) : null;
+  const accentColor = config.accentColor ?? "#b5517a";
+  const accentHsl = hexToHsl(accentColor);
 
   return (
     <div className="flex justify-center bg-black min-h-screen dark">
@@ -270,15 +334,12 @@ export default function ChatPage() {
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
               {msg.role === "assistant" && mentionsBooking(msg.content) && (
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-75"
-                  style={{ backgroundColor: "#b5517a" }}
-                >
-                  Book on WhatsApp 💬
-                </a>
+                <WhatsAppHandoffButton
+                  messages={messages}
+                  config={config}
+                  phone={bizPhone}
+                  accentColor={accentColor}
+                />
               )}
             </div>
           ))}
@@ -326,23 +387,11 @@ export default function ChatPage() {
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: hsl(var(--border));
-          border-radius: 4px;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

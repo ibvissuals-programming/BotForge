@@ -2,6 +2,7 @@ export interface BusinessConfig {
   id: string;
   bizName: string;
   bizType: string;
+  phone?: string;
   services?: string;
   location?: string;
   howToOrder?: string;
@@ -16,6 +17,7 @@ const businesses: BusinessConfig[] = [
     id: "styled-by-fortune",
     bizName: "Styled By Fortune",
     bizType: "wig",
+    phone: "2348163716199",
     services: [
       "Washing & Deep Conditioning — ₦2,500",
       "Lace Cleaning — ₦1,500",
