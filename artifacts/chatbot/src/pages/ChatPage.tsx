@@ -329,8 +329,8 @@ export default function ChatPage() {
         {/* Header */}
         <header className="flex-none h-16 border-b border-border flex items-center justify-between px-4 z-10 bg-background/95 backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-syne font-bold text-lg">
-              {config.bizName.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-black">
+              <img src="/icon-192.png" alt="BotForge logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-syne font-bold text-[17px] leading-tight text-foreground">
