@@ -3,7 +3,6 @@ import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { buildShareableUrl, hexToHsl } from "@/lib/configUrl";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
-import businesses from "@/data/businesses";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -247,22 +246,45 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, [accessTier]);
 
-  // Load business config from businesses.ts
+  // Load business config from the API (database-backed, single source of truth)
   useEffect(() => {
-    const biz = businesses[0];
-    setBusinessId(biz.id);
-    setBizPhone(biz.phone ?? "2348163716199");
-    setConfig({
-      bizName: biz.bizName,
-      bizType: biz.bizType,
-      services: biz.services,
-      location: biz.location,
-      howToOrder: biz.howToOrder,
-      instagram: biz.instagram,
-      personality: biz.personality,
-      welcomeMsg: biz.welcomeMsg,
-      accentColor: biz.accentColor,
-    });
+    fetch("/api/businesses")
+      .then((res) => {
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        return res.json() as Promise<Array<{
+          id: string;
+          bizName: string;
+          bizType: string;
+          phone?: string | null;
+          services?: string | null;
+          location?: string | null;
+          howToOrder?: string | null;
+          instagram?: string | null;
+          personality?: string | null;
+          welcomeMsg?: string | null;
+          accentColor?: string | null;
+        }>>;
+      })
+      .then((list) => {
+        const biz = list[0];
+        if (!biz) return;
+        setBusinessId(biz.id);
+        setBizPhone(biz.phone ?? "2348163716199");
+        setConfig({
+          bizName: biz.bizName,
+          bizType: biz.bizType,
+          services: biz.services ?? undefined,
+          location: biz.location ?? undefined,
+          howToOrder: biz.howToOrder ?? undefined,
+          instagram: biz.instagram ?? undefined,
+          personality: biz.personality ?? undefined,
+          welcomeMsg: biz.welcomeMsg ?? undefined,
+          accentColor: biz.accentColor ?? undefined,
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to load business config from API:", err);
+      });
   }, []);
 
   const isTrialEnded = accessTier === "free" && sentCount >= FREE_MSG_LIMIT;
