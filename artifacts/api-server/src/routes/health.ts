@@ -11,10 +11,57 @@ const REQUIRED_SECRETS = [
   { key: "DATABASE_URL",           label: "PostgreSQL database" },
 ];
 
-// ── Simple liveness probe — used by Replit deployment healthcheck ─────────────
+// ── Startup probe — used by Replit deployment healthcheck ─────────────────────
+//
+// Returns 200 only when the server AND the database are both reachable.
+// The deployment startup healthcheck (artifact.toml → health.startup) hits
+// this route; a 503 here causes the deployment to fail fast with a clear error
+// rather than hanging until the process is killed.
+//
+// connect_timeout=5 is a PostgreSQL protocol-level TCP timeout (not a pool-queue
+// wait). It ensures a bad DB host fails in ~5 s instead of hanging silently.
 
-router.get("/healthz", (_req, res) => {
-  res.json({ status: "ok" });
+router.get("/healthz", async (_req, res): Promise<void> => {
+  const dbUrl = process.env.DATABASE_URL;
+
+  if (!dbUrl) {
+    res.status(503).json({
+      status: "error",
+      db: { connected: false, error: "DATABASE_URL not set" },
+    });
+    return;
+  }
+
+  const dbUrlWithTimeout = dbUrl.includes("?")
+    ? `${dbUrl}&connect_timeout=5`
+    : `${dbUrl}?connect_timeout=5`;
+
+  const pool = new Pool({
+    connectionString: dbUrlWithTimeout,
+    connectionTimeoutMillis: 5_000,
+    max: 1,
+  });
+
+  const t0 = Date.now();
+  try {
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
+    res.status(200).json({
+      status: "ok",
+      db: { connected: true, latencyMs: Date.now() - t0 },
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: "error",
+      db: {
+        connected: false,
+        error: err instanceof Error ? err.message : String(err),
+      },
+    });
+  } finally {
+    await pool.end().catch(() => {});
+  }
 });
 
 router.get("/", (_req, res) => {
