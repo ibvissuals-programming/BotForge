@@ -33,7 +33,7 @@ const businesses: BusinessConfig[] = [
     personality:
       "Warm, glamorous, uses emojis, energetic and encouraging",
     welcomeMsg:
-      "Hey love! 💕 Welcome to Styled By Fortune — where tired wigs come back to life! ✨",
+      "Got questions beyond what's above? Ask me anything about booking, timing, or your specific hair needs! 💕",
     accentColor: "#b5517a",
   },
 ];

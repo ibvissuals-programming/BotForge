@@ -50,7 +50,7 @@ const BIZ_EMOJIS: Record<string, string> = {
 };
 
 const QUICK_REPLIES: Record<string, string[]> = {
-  wig: ["What are your prices?", "How do I book?", "Do you do installs?", "Where are you located?"],
+  wig: ["Can I book for this weekend?", "How long does a session take?", "Can I combine two services?", "Do you handle damaged or thin hair?"],
   fashion: ["See collections", "Pricing info", "Do you do custom?", "Delivery options"],
   food: ["See menu", "Do you deliver?", "How to order?", "Pricing"],
   beauty: ["Services & prices", "Book appointment", "Products available", "Location"],
