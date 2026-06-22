@@ -1,8 +1,6 @@
 import { Pool } from "pg";
 import { logger } from "./logger";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const SCHEMA_SQL = `
@@ -64,6 +62,26 @@ const SEED_BUSINESSES = [
 // ── Runner ────────────────────────────────────────────────────────────────────
 
 export async function runMigrations(): Promise<void> {
+  const dbUrl = process.env.DATABASE_URL;
+
+  if (!dbUrl) {
+    // Fail immediately with a clear message instead of hanging
+    throw new Error(
+      "DATABASE_URL is not set — cannot run DB migrations. " +
+      "Add it in Replit Secrets (dev) or the Deployment secrets panel (production)."
+    );
+  }
+
+  // connectionTimeoutMillis: fail fast (15s) instead of hanging forever
+  // This is the critical fix for production — without it, pool.connect()
+  // blocks indefinitely if the DB is unreachable, preventing app.listen().
+  const pool = new Pool({
+    connectionString: dbUrl,
+    connectionTimeoutMillis: 15_000,
+    idleTimeoutMillis: 30_000,
+    max: 3,
+  });
+
   const client = await pool.connect();
   try {
     // 1. Create tables (idempotent — IF NOT EXISTS)
@@ -113,5 +131,6 @@ export async function runMigrations(): Promise<void> {
     }
   } finally {
     client.release();
+    await pool.end();
   }
 }
