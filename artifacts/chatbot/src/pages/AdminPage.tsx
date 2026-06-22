@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Link as LinkIcon,
   Check,
@@ -16,7 +16,10 @@ import {
   Inbox,
   Sparkles,
   Copy,
+  QrCode,
+  Download,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
 import type { BotConfig } from "@workspace/api-client-react";
@@ -92,6 +95,84 @@ function handleSignOut() {
   window.location.reload();
 }
 
+// ── QR Code Modal ─────────────────────────────────────────────────────────────
+
+function QRModal({
+  bizName,
+  url,
+  accent,
+  onClose,
+}: {
+  bizName: string;
+  url: string;
+  accent: string;
+  onClose: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  function handleDownload() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.download = `${bizName.replace(/\s+/g, "-").toLowerCase()}-qr.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-2xl p-6 flex flex-col items-center gap-5 w-full max-w-[300px]">
+        {/* Header */}
+        <div className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <QrCode className="w-4 h-4" style={{ color: accent }} />
+            <span className="text-[13px] font-semibold text-[#f0f0f0]" style={{ fontFamily: "Syne, sans-serif" }}>
+              QR Code
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-[#1f1f1f] flex items-center justify-center text-[#666] hover:text-[#f0f0f0] transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* QR canvas */}
+        <div
+          className="rounded-xl p-3 bg-white"
+          style={{ boxShadow: `0 0 0 4px ${accent}33` }}
+        >
+          <QRCodeCanvas
+            value={url}
+            size={200}
+            bgColor="#ffffff"
+            fgColor="#0d0d0d"
+            level="M"
+            ref={canvasRef}
+          />
+        </div>
+
+        {/* Label */}
+        <p className="text-[13px] font-semibold text-[#ccc] text-center">{bizName}</p>
+
+        {/* Download */}
+        <button
+          onClick={handleDownload}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90"
+          style={{ background: accent }}
+        >
+          <Download className="w-4 h-4" />
+          Download PNG
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Client Card ───────────────────────────────────────────────────────────────
 
 function ClientCard({
@@ -111,17 +192,18 @@ function ClientCard({
   const [promoCaption, setPromoCaption] = useState<string | null>(null);
   const [promoCopied, setPromoCopied] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
 
   const accent = business.accentColor ?? "#7c6af7";
 
+  const chatUrl = `${window.location.origin}/#c=${encodeConfig(businessToConfig(business))}`;
+
   const handleCopyLink = useCallback(() => {
-    const cfg = businessToConfig(business);
-    const url = `${window.location.origin}/#c=${encodeConfig(cfg)}`;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(chatUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [business]);
+  }, [chatUrl]);
 
   const handleOpenBot = useCallback(() => {
     const cfg = businessToConfig(business);
@@ -248,6 +330,14 @@ function ClientCard({
             {copied ? "Copied!" : "Copy Link"}
           </button>
           <button
+            onClick={() => setShowQR(true)}
+            title="Get QR Code"
+            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-[#2a2a2a] bg-[#1f1f1f] text-[#888] hover:text-[#f0f0f0] hover:border-[#3a3a3a] transition-all"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            QR
+          </button>
+          <button
             onClick={handleOpenBot}
             className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl text-white transition-all flex-1 justify-center"
             style={{ background: accent }}
@@ -302,6 +392,16 @@ function ClientCard({
           </div>
         )}
       </div>
+
+      {/* QR Code modal */}
+      {showQR && (
+        <QRModal
+          bizName={business.bizName}
+          url={chatUrl}
+          accent={accent}
+          onClose={() => setShowQR(false)}
+        />
+      )}
 
       {/* Confirmation overlay */}
       {confirming && (
