@@ -357,15 +357,15 @@ export default function ChatPage() {
                 >
                   {BIZ_TYPE_LABELS[config.bizType || "other"] ?? config.bizType}
                 </span>
-                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10">
-                  Affordable
-                </span>
                 {config.location && (
                   <span className="text-[12px] text-muted-foreground">
                     📍 {config.location}
                   </span>
                 )}
               </div>
+              <p className="text-[12px] text-muted-foreground mt-2 leading-snug">
+                Quality wig care, prices that don't break the bank 💕
+              </p>
             </div>
           </div>
 
@@ -502,6 +502,18 @@ export default function ChatPage() {
             </Button>
           </div>
         </header>
+
+        {/* Developer attribution — always visible, links to BotForge creator */}
+        <div className="flex-none flex justify-center items-center py-1.5 border-b border-border/40 bg-background/60">
+          <a
+            href={DEVELOPER_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors flex items-center gap-1"
+          >
+            ⚡ Powered by BotForge
+          </a>
+        </div>
 
         {/* Messages */}
         <div
