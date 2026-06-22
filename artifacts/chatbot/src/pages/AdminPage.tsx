@@ -193,6 +193,7 @@ function ClientCard({
   const [promoCopied, setPromoCopied] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [introCopied, setIntroCopied] = useState(false);
 
   const accent = business.accentColor ?? "#7c6af7";
 
@@ -248,6 +249,17 @@ function ClientCard({
     } finally {
       setPromoLoading(false);
     }
+  }
+
+  function handleCopyIntroMessage() {
+    const msg =
+      `Hey! 👋 I just built you a 24/7 AI assistant for ${business.bizName} 🎉\n\n` +
+      `It answers customer questions automatically and sends serious buyers straight to your WhatsApp.\n\n` +
+      `Try it here: ${chatUrl}\n\nLet me know what you think!`;
+    navigator.clipboard.writeText(msg).then(() => {
+      setIntroCopied(true);
+      setTimeout(() => setIntroCopied(false), 2500);
+    });
   }
 
   function handleCopyCaption() {
@@ -347,11 +359,24 @@ function ClientCard({
           </button>
         </div>
 
+        {/* WhatsApp intro message */}
+        <button
+          onClick={handleCopyIntroMessage}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-dashed border-[#2a2a2a] text-[#666] hover:text-green-400 hover:border-green-500/40 hover:bg-green-500/5 transition-all"
+        >
+          {introCopied ? (
+            <Check className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <MessageSquare className="w-3.5 h-3.5" />
+          )}
+          {introCopied ? "Copied to clipboard!" : "Copy WhatsApp Intro Message"}
+        </button>
+
         {/* Promo generator */}
         <button
           onClick={handleGeneratePromo}
           disabled={promoLoading}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-dashed border-[#2a2a2a] text-[#666] hover:text-violet-400 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-dashed border-[#2a2a2a] text-[#666] hover:text-violet-400 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {promoLoading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
