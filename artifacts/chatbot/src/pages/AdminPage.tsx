@@ -1032,6 +1032,7 @@ export default function AdminPage() {
   const [editBusiness, setEditBusiness] = useState<Business | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<"clients" | "leads">("clients");
   const [newLeadsCount, setNewLeadsCount] = useState(0);
+  const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
     fetch("/api/businesses")
@@ -1042,14 +1043,18 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    function refreshBadge() {
+    function refreshLeads() {
       fetch("/api/leads")
         .then((r) => r.json())
-        .then((data) => setNewLeadsCount(countNewLeads(data as Lead[])))
+        .then((data) => {
+          const leads = data as Lead[];
+          setAllLeads(leads);
+          setNewLeadsCount(countNewLeads(leads));
+        })
         .catch(() => {});
     }
-    refreshBadge();
-    const id = setInterval(refreshBadge, 30_000);
+    refreshLeads();
+    const id = setInterval(refreshLeads, 30_000);
     return () => clearInterval(id);
   }, []);
 
@@ -1111,6 +1116,44 @@ export default function AdminPage() {
             </button>
           </div>
         </header>
+
+        {/* Stats row */}
+        {!loading && (
+          <div className="flex gap-2 px-4 mb-4">
+            {[
+              {
+                label: "Businesses",
+                value: businesses.length,
+                sub: null,
+              },
+              {
+                label: "Total Leads",
+                value: allLeads.length,
+                sub: null,
+              },
+              {
+                label: "Contacted",
+                value: allLeads.filter((l) => l.contacted).length,
+                sub: `${allLeads.length - allLeads.filter((l) => l.contacted).length} pending`,
+              },
+            ].map(({ label, value, sub }) => (
+              <div
+                key={label}
+                className="flex-1 rounded-xl bg-[#111] border border-[#1f1f1f] px-3 py-2.5 flex flex-col gap-0.5"
+              >
+                <span className="text-[22px] font-bold text-[#f0f0f0] leading-none" style={{ fontFamily: "Syne, sans-serif" }}>
+                  {value}
+                </span>
+                <span className="text-[10px] font-semibold text-[#555] uppercase tracking-wider">
+                  {label}
+                </span>
+                {sub && (
+                  <span className="text-[10px] text-[#444] mt-0.5">{sub}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Tab bar */}
         <div className="flex gap-1 px-4 mb-2">
