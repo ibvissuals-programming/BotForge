@@ -1,22 +1,9 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { runSecretsCheck } from "./lib/secrets-check";
 
-// ── Secret guard ─────────────────────────────────────────────────────────────
-if (!process.env.GROQ_API_KEY) {
-  logger.warn(
-    "GROQ_API_KEY missing — add it in Secrets (Replit sidebar → Secrets) before the chat endpoint will work",
-  );
-} else {
-  logger.info("GROQ_API_KEY present — AI chat enabled");
-}
-
-if (!process.env.BOTFORGE_CEO_PASSWORD) {
-  logger.warn(
-    "BOTFORGE_CEO_PASSWORD missing — add it in Secrets before the admin login will work",
-  );
-} else {
-  logger.info("BOTFORGE_CEO_PASSWORD present — admin login enabled");
-}
+// ── Secrets checklist — runs first on every startup ───────────────────────────
+runSecretsCheck();
 
 const rawPort = process.env["PORT"];
 
