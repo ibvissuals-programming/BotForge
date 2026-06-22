@@ -5,6 +5,63 @@
 
 ---
 
+## Pre-Publish Checklist
+
+Run these steps **in order** before every publish attempt. Each step catches a
+different class of failure. Do not skip any.
+
+### Step 1 — Run the secrets check
+
+```
+pnpm run secrets:check
+```
+
+Expected output for a ready-to-deploy state:
+```
+  ✅  GROQ_API_KEY
+  ✅  BOTFORGE_CEO_PASSWORD
+  ✅  DATABASE_URL
+  All secrets present — server fully operational ✅
+```
+
+If any secret shows ❌, add it in Replit → Deployments → Secrets and re-run.
+
+If you see `⚠️  DATABASE_URL HOSTNAME WARNING` — stop. See Step 2.
+
+### Step 2 — Confirm DATABASE_URL is NOT in Deployments → Secrets
+
+Go to **Replit → Deployments → Secrets** and verify that `DATABASE_URL` is
+**not listed there**. Replit injects the correct production connection string
+automatically. A manually-added `DATABASE_URL` (which will contain the dev
+`helium` hostname) overrides Replit's injection and causes a TCP hang on
+startup. Delete it if present.
+
+Only these two secrets should be in Deployments → Secrets:
+- `GROQ_API_KEY`
+- `BOTFORGE_CEO_PASSWORD`
+
+### Step 3 — Confirm artifact.toml uses `[services.env]`
+
+Open `artifacts/api-server/.replit-artifact/artifact.toml` and verify the env
+var block reads exactly:
+
+```toml
+[services.env]
+PORT = "8080"
+NODE_ENV = "production"
+```
+
+**Do not rename this section.** `[services.env]` is the only section name
+Replit recognises for injecting env vars into the production run process. Any
+other name (e.g. `[services.production.run.env]`) is silently ignored — see
+"PORT / artifact.toml Bug" section below for the full history.
+
+### Step 4 — Publish
+
+All three checks green → publish.
+
+---
+
 ## Required Secrets
 
 ### Dev Secrets (set automatically by Replit)
@@ -120,6 +177,70 @@ guard, this situation should never reach production in the first place.
 
 ---
 
+## PORT / artifact.toml Bug
+
+### Root Cause (June 2026)
+
+**Symptom:** Build passed green (secrets:check ✅, TypeScript build ✅), but deployment
+failed with:
+
+```
+seccomp port detection incomplete
+not all artifact ports opened
+a port configuration was specified
+sending SIGTERM to artifact process
+all artifact processes stopped
+```
+
+**Root cause:** `artifact.toml` used `[services.production.run.env]` to set `PORT`:
+
+```toml
+# WRONG — this section name is not recognised by Replit
+[services.production.run.env]
+PORT = "8080"
+NODE_ENV = "production"
+```
+
+`[services.production.run.env]` is **not** a valid section in Replit's artifact.toml
+schema. Replit silently ignored it, so `PORT` was never set in the production process
+environment. `index.ts` throws `"PORT environment variable is required but was not
+provided."` on startup — before `app.listen()` is ever called. Replit's seccomp
+monitoring waited for `localPort = 8080` to be opened by the process, never saw it,
+and sent SIGTERM.
+
+The build log showed no error because the bug only manifests at runtime, not at build
+time.
+
+**Fix applied:** Changed to the recognised section name `[services.env]`:
+
+```toml
+# CORRECT — [services.env] is the section Replit recognises
+[services.env]
+PORT = "8080"
+NODE_ENV = "production"
+```
+
+### Why `[services.env]` works in dev too
+
+The dev script (`package.json`) explicitly sets `export NODE_ENV=development` before
+running the server. This shell export overrides the `NODE_ENV = "production"` from
+`[services.env]`, so the dev server always runs in development mode. `PORT = "8080"`
+is consistent across both environments and causes no conflict.
+
+### How to verify
+
+Open `artifacts/api-server/.replit-artifact/artifact.toml` and confirm:
+
+```toml
+[services.env]
+PORT = "8080"
+NODE_ENV = "production"
+```
+
+There must be **no** `[services.production.run.env]` block anywhere in the file.
+
+---
+
 ## Schema & Migrations
 
 Migrations run automatically on every server boot (`index.ts` calls `runMigrations()`
@@ -132,28 +253,6 @@ before `app.listen()`). They are fully idempotent:
 
 If migrations fail (e.g. bad `DATABASE_URL`), the server exits with code 1 before
 binding to port 8080, so the deployment healthcheck never passes.
-
----
-
-## Pre-Deploy Checklist
-
-Run through this before every deployment attempt:
-
-```
-pnpm run secrets:check
-```
-
-Expected output for a ready-to-deploy state:
-```
-  ✅  GROQ_API_KEY
-  ✅  BOTFORGE_CEO_PASSWORD
-  ✅  DATABASE_URL
-  All secrets present — server fully operational ✅
-```
-
-If you see `⚠️  DATABASE_URL HOSTNAME WARNING` in the pre-deploy output — stop, **remove**
-any manually-set `DATABASE_URL` from Deployments → Secrets, confirm Replit can inject
-the production URL, then re-run before deploying.
 
 ---
 

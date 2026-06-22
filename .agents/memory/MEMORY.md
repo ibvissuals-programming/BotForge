@@ -1,0 +1,1 @@
+- [artifact.toml env var section](artifact-toml-env-section.md) — only `[services.env]` is recognised for production run env vars; any other name is silently ignored and causes PORT-not-set crash.

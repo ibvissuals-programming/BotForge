@@ -12,6 +12,11 @@ paths = ["/api"]
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"
 
+# ⚠️  CRITICAL — do NOT rename this section.
+# [services.env] is the only section Replit recognises for injecting env vars
+# into the production run process. Any other name (e.g. [services.production.run.env])
+# is silently ignored, PORT is never set, index.ts throws before app.listen() is
+# called, and the deployment fails with "not all artifact ports opened" / SIGTERM.
 [services.env]
 PORT = "8080"
 NODE_ENV = "production"
