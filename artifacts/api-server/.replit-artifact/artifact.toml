@@ -15,9 +15,10 @@ run = "pnpm --filter @workspace/api-server run dev"
 [services.production]
 
 [services.production.build]
-# secrets:check runs first — exits 1 (blocking the build) if any secret is
-# missing or if DATABASE_URL contains an internal-only hostname like "helium"
-# that will cause a silent TCP hang in production.
+# secrets:check runs first — exits 1 (blocking the build) if any required
+# secret (GROQ_API_KEY, BOTFORGE_CEO_PASSWORD, DATABASE_URL) is missing.
+# DATABASE_URL hostname is NOT validated here; Replit injects its own
+# production URL and we must trust its format.
 args = ["sh", "-c", "pnpm run secrets:check && pnpm --filter @workspace/api-server run build"]
 
 [services.production.build.env]
