@@ -10,6 +10,14 @@ if (!process.env.GROQ_API_KEY) {
   logger.info("GROQ_API_KEY present — AI chat enabled");
 }
 
+if (!process.env.BOTFORGE_CEO_PASSWORD) {
+  logger.warn(
+    "BOTFORGE_CEO_PASSWORD missing — add it in Secrets before the admin login will work",
+  );
+} else {
+  logger.info("BOTFORGE_CEO_PASSWORD present — admin login enabled");
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
