@@ -33,6 +33,64 @@ const SECRETS: SecretSpec[] = [
 
 const LINE = "─".repeat(62);
 
+// ── Internal-hostname guard ───────────────────────────────────────────────────
+//
+// Replit's dev environment sets DATABASE_URL with an internal container
+// hostname (e.g. "helium") that only resolves inside the dev network.
+// That hostname does not exist in production — causing a silent TCP hang
+// on startup. This guard detects the pattern and logs a loud warning so
+// the problem is self-diagnosing rather than a mysterious "failed to start".
+//
+// Detection heuristics (any one triggers the warning):
+//   1. Single-label hostname — no dots (e.g. "helium", "postgres", "db").
+//      Real production DB hosts always have FQDNs.
+//   2. Known Replit dev-container hostnames: "helium", "neon-proxy" etc.
+//   3. Loopback / link-local: localhost, 127.x.x.x, ::1
+//   4. RFC-1918 private ranges: 10.x, 172.16-31.x, 192.168.x
+//      (flagged only in NODE_ENV=production — valid in some hosted setups)
+
+const KNOWN_DEV_HOSTS = new Set(["helium", "neon-proxy", "db", "postgres", "database"]);
+
+function detectInternalDbHost(rawUrl: string): string | null {
+  let host: string;
+  try {
+    host = new URL(rawUrl).hostname;
+  } catch {
+    return null;
+  }
+
+  if (!host) return null;
+
+  // 1. Known Replit dev-container hostnames
+  if (KNOWN_DEV_HOSTS.has(host.toLowerCase())) {
+    return `"${host}" is a Replit dev-container hostname — unreachable from production`;
+  }
+
+  // 2. Single-label hostname (no dots, not an IP)
+  const isIp = /^[\d.:]+$/.test(host);
+  if (!isIp && !host.includes(".")) {
+    return `"${host}" is a single-label hostname — only resolvable inside a container network`;
+  }
+
+  // 3. Loopback
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    return `"${host}" is a loopback address — only reachable on the same machine`;
+  }
+
+  // 4. RFC-1918 private ranges (warn only in production)
+  if (process.env.NODE_ENV === "production") {
+    const rfc1918 =
+      /^10\.\d+\.\d+\.\d+$/.test(host) ||
+      /^192\.168\.\d+\.\d+$/.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(host);
+    if (rfc1918) {
+      return `"${host}" is a private/RFC-1918 address — likely unreachable from Replit's production network`;
+    }
+  }
+
+  return null;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -73,4 +131,22 @@ export function runSecretsCheck(): void {
   }
 
   logger.info(LINE);
+
+  // ── Internal-hostname guard ──────────────────────────────────────────────
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const warning = detectInternalDbHost(dbUrl);
+    if (warning) {
+      logger.warn(LINE);
+      logger.warn("  ⚠️   DATABASE_URL HOSTNAME WARNING");
+      logger.warn(LINE);
+      logger.warn(`  ${warning}`);
+      logger.warn("  This DATABASE_URL will work in dev but will cause a");
+      logger.warn("  silent TCP hang on startup in production (deployed app).");
+      logger.warn("  Fix: set DATABASE_URL in Deployments → Secrets using");
+      logger.warn("  the external connection string from the PostgreSQL");
+      logger.warn("  integration (not the internal dev URL).");
+      logger.warn(LINE);
+    }
+  }
 }
