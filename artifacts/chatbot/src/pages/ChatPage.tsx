@@ -384,6 +384,14 @@ export default function ChatPage() {
                     📍 {config.location}
                   </span>
                 )}
+                <a
+                  href={DEVELOPER_WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-semibold flex items-center gap-0.5 text-violet-400/80 hover:text-violet-400 transition-colors leading-none"
+                >
+                  ⚡ Powered by BotForge
+                </a>
               </div>
               <p className="text-[12px] text-muted-foreground mt-2 leading-snug">
                 Quality wig care, prices that don't break the bank 💕
@@ -525,18 +533,6 @@ export default function ChatPage() {
           </div>
         </header>
 
-        {/* Developer attribution — always visible, links to BotForge creator */}
-        <div className="flex-none flex justify-center items-center py-2 border-b border-border bg-card/40">
-          <a
-            href={DEVELOPER_WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-          >
-            <span className="text-violet-400">⚡</span>
-            <span>Powered by BotForge</span>
-          </a>
-        </div>
 
         {/* Messages */}
         <div
