@@ -652,12 +652,25 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
 
 // ── Admin Page ────────────────────────────────────────────────────────────────
 
+const LEADS_VIEWED_KEY = "botforge_leads_last_viewed";
+
+function getLastViewed(): number {
+  const raw = localStorage.getItem(LEADS_VIEWED_KEY);
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+function countNewLeads(leads: Lead[]): number {
+  const lastViewed = getLastViewed();
+  return leads.filter((l) => new Date(l.timestamp).getTime() > lastViewed).length;
+}
+
 export default function AdminPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editBusiness, setEditBusiness] = useState<Business | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<"clients" | "leads">("clients");
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/businesses")
@@ -666,6 +679,24 @@ export default function AdminPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    function refreshBadge() {
+      fetch("/api/leads")
+        .then((r) => r.json())
+        .then((data) => setNewLeadsCount(countNewLeads(data as Lead[])))
+        .catch(() => {});
+    }
+    refreshBadge();
+    const id = setInterval(refreshBadge, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  function handleLeadsTabClick() {
+    setActiveTab("leads");
+    localStorage.setItem(LEADS_VIEWED_KEY, Date.now().toString());
+    setNewLeadsCount(0);
+  }
 
   function handleAdded(b: Business) {
     setBusinesses((prev) => [...prev, b]);
@@ -734,7 +765,7 @@ export default function AdminPage() {
             Clients
           </button>
           <button
-            onClick={() => setActiveTab("leads")}
+            onClick={handleLeadsTabClick}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
               activeTab === "leads"
                 ? "bg-[#1f1f1f] text-[#f0f0f0] border border-[#2a2a2a]"
@@ -743,6 +774,11 @@ export default function AdminPage() {
           >
             <Inbox className="w-3.5 h-3.5" />
             Leads
+            {newLeadsCount > 0 && (
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 leading-none">
+                {newLeadsCount > 99 ? "99+" : newLeadsCount}
+              </span>
+            )}
           </button>
         </div>
 
