@@ -227,9 +227,8 @@ function ClientCard({
     }
   }
 
-  async function handleGeneratePromo() {
+  async function runPromoFetch() {
     setPromoLoading(true);
-    setPromoCaption(null);
     setPromoError(null);
     try {
       const res = await fetch("/api/promo/generate", {
@@ -254,6 +253,15 @@ function ClientCard({
     } finally {
       setPromoLoading(false);
     }
+  }
+
+  async function handleGeneratePromo() {
+    setPromoCaption(null);
+    await runPromoFetch();
+  }
+
+  async function handleRegeneratePromo() {
+    await runPromoFetch();
   }
 
   function handleCopyIntroMessage() {
@@ -397,19 +405,36 @@ function ClientCard({
         )}
         {promoCaption && (
           <div className="mt-3 rounded-xl bg-[#0f0f0f] border border-violet-500/20 p-3.5">
-            <p className="text-[12px] text-[#ccc] leading-relaxed whitespace-pre-wrap">{promoCaption}</p>
+            <p className={`text-[12px] leading-relaxed whitespace-pre-wrap transition-opacity ${promoLoading ? "text-[#555] opacity-50" : "text-[#ccc]"}`}>
+              {promoLoading ? (
+                <span className="flex items-center gap-2 text-[#555]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                  Generating idea…
+                </span>
+              ) : promoCaption}
+            </p>
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1f1f1f]">
               <span className="text-[10px] text-[#444]">AI-generated caption</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPromoCaption(null)}
-                  className="text-[11px] text-[#555] hover:text-[#888] transition-colors"
+                  disabled={promoLoading}
+                  className="text-[11px] text-[#555] hover:text-[#888] transition-colors disabled:opacity-40"
                 >
                   Dismiss
                 </button>
                 <button
+                  onClick={handleRegeneratePromo}
+                  disabled={promoLoading}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#1f1f1f] text-[#777] hover:text-[#bbb] hover:bg-[#2a2a2a] transition-colors disabled:opacity-40"
+                >
+                  <Loader2 className={`w-3 h-3 ${promoLoading ? "animate-spin" : ""}`} />
+                  Regenerate
+                </button>
+                <button
                   onClick={handleCopyCaption}
-                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 transition-colors"
+                  disabled={promoLoading}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 transition-colors disabled:opacity-40"
                 >
                   {promoCopied ? (
                     <><Check className="w-3 h-3" /> Copied!</>
