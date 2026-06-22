@@ -1,9 +1,16 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { runSecretsCheck } from "./lib/secrets-check";
+import { runMigrations } from "./lib/db-migrate";
 
 // ── Secrets checklist — runs first on every startup ───────────────────────────
 runSecretsCheck();
+
+// ── DB migrations + seed — idempotent, safe to run on every boot ──────────────
+await runMigrations().catch((err) => {
+  logger.error({ err }, "DB migration failed — server will not start");
+  process.exit(1);
+});
 
 const rawPort = process.env["PORT"];
 
