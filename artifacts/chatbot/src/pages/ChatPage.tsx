@@ -51,11 +51,11 @@ const BIZ_EMOJIS: Record<string, string> = {
 
 const QUICK_REPLIES: Record<string, string[]> = {
   wig: ["Can I book for this weekend?", "How long does a session take?", "Can I combine two services?", "Do you handle damaged or thin hair?"],
-  fashion: ["See collections", "Pricing info", "Do you do custom?", "Delivery options"],
-  food: ["See menu", "Do you deliver?", "How to order?", "Pricing"],
-  beauty: ["Services & prices", "Book appointment", "Products available", "Location"],
-  photography: ["Packages & prices", "Book a shoot", "Turnaround time", "Location"],
-  other: ["What do you offer?", "Pricing info", "How to order?", "Contact details"],
+  fashion: ["Can you make something custom for me?", "Do you have my size in stock?", "How long does an order take?", "Can I mix pieces from different collections?"],
+  food: ["Can I pre-order for this weekend?", "Do you cater for large groups?", "Can I customise an item?", "How far do you deliver?"],
+  beauty: ["Can I book for this week?", "Do you work with sensitive skin?", "How long does a session take?", "Can I bundle two treatments?"],
+  photography: ["Are you available on my date?", "Can I request a specific style or theme?", "How soon do I get my photos?", "Do you offer couple or group shoots?"],
+  other: ["Are you available this week?", "Can you handle a custom request?", "How long does it usually take?", "Can I combine two services?"],
 };
 
 const BIZ_TYPE_LABELS: Record<string, string> = {
