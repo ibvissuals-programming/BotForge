@@ -504,14 +504,15 @@ export default function ChatPage() {
         </header>
 
         {/* Developer attribution — always visible, links to BotForge creator */}
-        <div className="flex-none flex justify-center items-center py-1.5 border-b border-border/40 bg-background/60">
+        <div className="flex-none flex justify-center items-center py-2 border-b border-border bg-card/40">
           <a
             href={DEVELOPER_WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors flex items-center gap-1"
+            className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
           >
-            ⚡ Powered by BotForge
+            <span className="text-violet-400">⚡</span>
+            <span>Powered by BotForge</span>
           </a>
         </div>
 
