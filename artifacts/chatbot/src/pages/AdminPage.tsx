@@ -11,6 +11,9 @@ import {
   Loader2,
   Trash2,
   Pencil,
+  MessageSquare,
+  Users,
+  Inbox,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
@@ -30,6 +33,20 @@ interface Business {
   personality?: string | null;
   welcomeMsg?: string | null;
   accentColor?: string | null;
+}
+
+type BookingIntent = "low" | "medium" | "high";
+
+interface Lead {
+  id: string;
+  businessId: string;
+  timestamp: string;
+  customerName: string | null;
+  servicesInterested: string[];
+  bookingIntent: BookingIntent;
+  questionsAsked: string[];
+  conversationLength: number;
+  summaryText: string;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -487,6 +504,152 @@ function AddBusinessModal({
   );
 }
 
+// ── Leads Inbox ───────────────────────────────────────────────────────────────
+
+const INTENT_STYLES: Record<BookingIntent, { label: string; cls: string }> = {
+  high:   { label: "High intent",   cls: "bg-green-500/15 text-green-400 border-green-500/30" },
+  medium: { label: "Medium intent", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  low:    { label: "Low intent",    cls: "bg-[#2a2a2a] text-[#888] border-[#333]" },
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1)  return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function LeadsInbox({ businesses }: { businesses: Business[] }) {
+  const [leads, setLeads]           = useState<Lead[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [filterBiz, setFilterBiz]   = useState<string>("all");
+
+  const bizMap = Object.fromEntries(businesses.map((b) => [b.id, b]));
+
+  useEffect(() => {
+    const url = filterBiz !== "all" ? `/api/leads?businessId=${filterBiz}` : "/api/leads";
+    setLoading(true);
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => setLeads(data as Lead[]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [filterBiz]);
+
+  const displayed = leads;
+
+  return (
+    <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 mt-1 mb-1">
+        <select
+          value={filterBiz}
+          onChange={(e) => setFilterBiz(e.target.value)}
+          className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-[#ccc] text-[13px] rounded-xl px-3 py-2.5 outline-none focus:border-[#7c6af7] transition-colors"
+        >
+          <option value="all">All businesses</option>
+          {businesses.map((b) => (
+            <option key={b.id} value={b.id}>{b.bizName}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => {
+            setLoading(true);
+            const url = filterBiz !== "all" ? `/api/leads?businessId=${filterBiz}` : "/api/leads";
+            fetch(url).then((r) => r.json()).then((d) => setLeads(d as Lead[])).catch(() => {}).finally(() => setLoading(false));
+          }}
+          className="p-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors"
+          title="Refresh"
+        >
+          <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
+        </div>
+      ) : displayed.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+          <Inbox className="w-8 h-8 text-[#333]" />
+          <p className="text-[13px] text-[#555]">No leads yet</p>
+          <p className="text-[11px] text-[#444]">They'll appear here when customers use the WhatsApp handoff</p>
+        </div>
+      ) : (
+        displayed.map((lead) => {
+          const biz = bizMap[lead.businessId];
+          const intent = INTENT_STYLES[lead.bookingIntent] ?? INTENT_STYLES.low;
+          const waText = encodeURIComponent(
+            `Hi! Following up from our chat — ${lead.summaryText || "you were interested in our services"}.`
+          );
+          const waUrl = biz?.phone ? `https://wa.me/${biz.phone}?text=${waText}` : null;
+
+          return (
+            <div
+              key={lead.id}
+              className="rounded-2xl bg-[#111] border border-[#1f1f1f] p-4 flex flex-col gap-3"
+            >
+              {/* Top row: biz name + intent badge + time */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-[#f0f0f0] truncate">
+                    {biz?.bizName ?? lead.businessId}
+                  </p>
+                  <p className="text-[11px] text-[#555] mt-0.5">{timeAgo(lead.timestamp)}</p>
+                </div>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${intent.cls}`}>
+                  {intent.label}
+                </span>
+              </div>
+
+              {/* Services interested */}
+              {lead.servicesInterested.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {lead.servicesInterested.map((s, i) => (
+                    <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-[#1f1f1f] border border-[#2a2a2a] text-[#aaa]">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Summary */}
+              {lead.summaryText && (
+                <p className="text-[12px] text-[#777] leading-relaxed line-clamp-3">
+                  {lead.summaryText}
+                </p>
+              )}
+
+              {/* Footer: message count + WhatsApp button */}
+              <div className="flex items-center justify-between pt-1 border-t border-[#1f1f1f]">
+                <span className="text-[11px] text-[#444]">
+                  {lead.conversationLength} {lead.conversationLength === 1 ? "message" : "messages"}
+                </span>
+                {waUrl ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Message on WhatsApp
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-[#444]">No phone on file</span>
+                )}
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 // ── Admin Page ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -494,6 +657,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editBusiness, setEditBusiness] = useState<Business | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<"clients" | "leads">("clients");
 
   useEffect(() => {
     fetch("/api/businesses")
@@ -556,30 +720,60 @@ export default function AdminPage() {
           </div>
         </header>
 
-        {/* Cards */}
-        <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
-            </div>
-          ) : (
-            businesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} onEdit={openEdit} />)
-          )}
-
-          {/* Add new */}
+        {/* Tab bar */}
+        <div className="flex gap-1 px-4 mb-2">
           <button
-            onClick={() => { setEditBusiness(undefined); setShowForm(true); }}
-            className="rounded-2xl border border-dashed border-[#2a2a2a] p-5 flex items-center gap-4 mt-2 hover:border-[#3a3a3a] hover:bg-[#111] transition-all w-full text-left"
+            onClick={() => setActiveTab("clients")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
+              activeTab === "clients"
+                ? "bg-[#1f1f1f] text-[#f0f0f0] border border-[#2a2a2a]"
+                : "text-[#555] hover:text-[#888]"
+            }`}
           >
-            <div className="w-11 h-11 rounded-full bg-[#1f1f1f] border border-[#2a2a2a] flex items-center justify-center text-[#555] text-xl">
-              +
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[#888]">Add a new client</p>
-              <p className="text-[11px] text-[#555] mt-0.5">Fill in the form — no code needed</p>
-            </div>
+            <Users className="w-3.5 h-3.5" />
+            Clients
+          </button>
+          <button
+            onClick={() => setActiveTab("leads")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
+              activeTab === "leads"
+                ? "bg-[#1f1f1f] text-[#f0f0f0] border border-[#2a2a2a]"
+                : "text-[#555] hover:text-[#888]"
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            Leads
           </button>
         </div>
+
+        {/* Tab content */}
+        {activeTab === "clients" ? (
+          <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
+              </div>
+            ) : (
+              businesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} onEdit={openEdit} />)
+            )}
+
+            {/* Add new */}
+            <button
+              onClick={() => { setEditBusiness(undefined); setShowForm(true); }}
+              className="rounded-2xl border border-dashed border-[#2a2a2a] p-5 flex items-center gap-4 mt-2 hover:border-[#3a3a3a] hover:bg-[#111] transition-all w-full text-left"
+            >
+              <div className="w-11 h-11 rounded-full bg-[#1f1f1f] border border-[#2a2a2a] flex items-center justify-center text-[#555] text-xl">
+                +
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-[#888]">Add a new client</p>
+                <p className="text-[11px] text-[#555] mt-0.5">Fill in the form — no code needed</p>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <LeadsInbox businesses={businesses} />
+        )}
 
         {/* Footer */}
         <footer className="px-5 py-4 border-t border-[#1f1f1f]">
