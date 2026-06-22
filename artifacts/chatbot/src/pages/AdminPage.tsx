@@ -14,6 +14,8 @@ import {
   MessageSquare,
   Users,
   Inbox,
+  Sparkles,
+  Copy,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
@@ -105,6 +107,10 @@ function ClientCard({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [, setLocation] = useLocation();
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoCaption, setPromoCaption] = useState<string | null>(null);
+  const [promoCopied, setPromoCopied] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   const accent = business.accentColor ?? "#7c6af7";
 
@@ -131,6 +137,43 @@ function ClientCard({
       setDeleting(false);
       setConfirming(false);
     }
+  }
+
+  async function handleGeneratePromo() {
+    setPromoLoading(true);
+    setPromoCaption(null);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/promo/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bizName: business.bizName,
+          bizType: business.bizType,
+          services: business.services,
+          location: business.location,
+          personality: business.personality,
+        }),
+      });
+      const data = (await res.json()) as { caption?: string; error?: string };
+      if (!res.ok || data.error) {
+        setPromoError(data.error ?? "Failed to generate. Try again.");
+      } else {
+        setPromoCaption(data.caption ?? "");
+      }
+    } catch {
+      setPromoError("Could not reach the server.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function handleCopyCaption() {
+    if (!promoCaption) return;
+    navigator.clipboard.writeText(promoCaption).then(() => {
+      setPromoCopied(true);
+      setTimeout(() => setPromoCopied(false), 2000);
+    });
   }
 
   return (
@@ -213,6 +256,51 @@ function ClientCard({
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Promo generator */}
+        <button
+          onClick={handleGeneratePromo}
+          disabled={promoLoading}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-dashed border-[#2a2a2a] text-[#666] hover:text-violet-400 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {promoLoading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="w-3.5 h-3.5" />
+          )}
+          {promoLoading ? "Generating idea…" : "✨ Generate Promo Idea"}
+        </button>
+
+        {/* Promo result */}
+        {promoError && (
+          <p className="mt-2 text-[11px] text-red-400 px-1">{promoError}</p>
+        )}
+        {promoCaption && (
+          <div className="mt-3 rounded-xl bg-[#0f0f0f] border border-violet-500/20 p-3.5">
+            <p className="text-[12px] text-[#ccc] leading-relaxed whitespace-pre-wrap">{promoCaption}</p>
+            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1f1f1f]">
+              <span className="text-[10px] text-[#444]">AI-generated caption</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPromoCaption(null)}
+                  className="text-[11px] text-[#555] hover:text-[#888] transition-colors"
+                >
+                  Dismiss
+                </button>
+                <button
+                  onClick={handleCopyCaption}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 transition-colors"
+                >
+                  {promoCopied ? (
+                    <><Check className="w-3 h-3" /> Copied!</>
+                  ) : (
+                    <><Copy className="w-3 h-3" /> Copy</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Confirmation overlay */}
