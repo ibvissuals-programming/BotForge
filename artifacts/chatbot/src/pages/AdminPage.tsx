@@ -941,6 +941,47 @@ function LeadCard({
   );
 }
 
+// ── CSV Export ────────────────────────────────────────────────────────────────
+
+function csvEscape(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function exportLeadsToCSV(leads: Lead[], bizMap: Record<string, Business | undefined>): void {
+  const headers = [
+    "Business Name",
+    "Date",
+    "Customer Name",
+    "Services Interested",
+    "Booking Intent",
+    "Questions Asked",
+    "Contacted",
+  ];
+
+  const rows = leads.map((lead) => [
+    csvEscape(bizMap[lead.businessId]?.bizName ?? lead.businessId),
+    csvEscape(new Date(lead.timestamp).toLocaleString()),
+    csvEscape(lead.customerName ?? ""),
+    csvEscape(lead.servicesInterested.join("; ")),
+    csvEscape(lead.bookingIntent),
+    csvEscape(lead.questionsAsked.join("; ")),
+    csvEscape(lead.contacted ? "Yes" : "No"),
+  ]);
+
+  const csv = [headers.map(csvEscape), ...rows]
+    .map((row) => row.join(","))
+    .join("\n");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `botforge-leads-${today}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function LeadsInbox({ businesses }: { businesses: Business[] }) {
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -966,7 +1007,7 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
 
   return (
     <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
-      {/* Filter bar */}
+      {/* Filter bar + Export */}
       <div className="flex items-center gap-2 mt-1 mb-1">
         <select
           value={filterBiz}
@@ -978,6 +1019,15 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
             <option key={b.id} value={b.id}>{b.bizName}</option>
           ))}
         </select>
+        <button
+          onClick={() => exportLeadsToCSV(leads, bizMap)}
+          disabled={leads.length === 0}
+          title="Export CSV"
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[12px] font-medium"
+        >
+          <Download className="w-4 h-4" />
+          CSV
+        </button>
         <button
           onClick={() => fetchLeads(filterBiz)}
           className="p-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors"
