@@ -129,6 +129,61 @@ router.post("/businesses", async (req, res): Promise<void> => {
   }
 });
 
+// ── PUT /businesses/:id ───────────────────────────────────────────────────────
+
+router.put("/businesses/:id", async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const {
+    bizName,
+    bizType,
+    phone,
+    services,
+    location,
+    howToOrder,
+    instagram,
+    personality,
+    welcomeMsg,
+    accentColor,
+  } = req.body as Partial<Business>;
+
+  if (!bizName?.trim() || !bizType?.trim()) {
+    res.status(400).json({ error: "bizName and bizType are required" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE businesses
+       SET biz_name=$1, biz_type=$2, phone=$3, services=$4, location=$5,
+           how_to_order=$6, instagram=$7, personality=$8, welcome_msg=$9,
+           accent_color=$10
+       WHERE id=$11
+       RETURNING *`,
+      [
+        bizName.trim(),
+        bizType.trim(),
+        phone?.trim() || null,
+        services?.trim() || null,
+        location?.trim() || null,
+        howToOrder?.trim() || null,
+        instagram?.trim() || null,
+        personality?.trim() || null,
+        welcomeMsg?.trim() || null,
+        accentColor?.trim() || null,
+        id,
+      ]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "Business not found" });
+      return;
+    }
+    res.json(rowToBusiness(result.rows[0]));
+  } catch (err) {
+    logger.error({ err }, "Failed to update business");
+    res.status(500).json({ error: "Failed to update business" });
+  }
+});
+
 // ── DELETE /businesses/:id ────────────────────────────────────────────────────
 
 router.delete("/businesses/:id", async (req, res): Promise<void> => {

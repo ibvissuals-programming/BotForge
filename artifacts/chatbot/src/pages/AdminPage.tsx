@@ -10,6 +10,7 @@ import {
   X,
   Loader2,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
@@ -77,9 +78,11 @@ function handleSignOut() {
 function ClientCard({
   business,
   onDeleted,
+  onEdit,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
+  onEdit: (b: Business) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -142,14 +145,23 @@ function ClientCard({
               </span>
             </div>
           </div>
-          {/* Delete button */}
-          <button
-            onClick={() => setConfirming(true)}
-            title="Delete client"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#444] hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {/* Edit / Delete buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => onEdit(business)}
+              title="Edit client"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#444] hover:text-[#f0f0f0] hover:bg-[#2a2a2a] transition-all"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              title="Delete client"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#444] hover:text-red-400 hover:bg-red-400/10 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {business.location && (
@@ -219,7 +231,7 @@ function ClientCard({
   );
 }
 
-// ── Add Business Form ─────────────────────────────────────────────────────────
+// ── Business Form Modal (add + edit) ─────────────────────────────────────────
 
 const EMPTY_FORM = {
   bizName: "",
@@ -234,14 +246,34 @@ const EMPTY_FORM = {
   accentColor: "#7c6af7",
 };
 
+function businessToForm(b: Business): typeof EMPTY_FORM {
+  return {
+    bizName: b.bizName,
+    bizType: b.bizType,
+    phone: b.phone ?? "",
+    services: b.services ?? "",
+    location: b.location ?? "",
+    howToOrder: b.howToOrder ?? "",
+    instagram: b.instagram ?? "",
+    personality: b.personality ?? "",
+    welcomeMsg: b.welcomeMsg ?? "",
+    accentColor: b.accentColor ?? "#7c6af7",
+  };
+}
+
 function AddBusinessModal({
   onClose,
   onAdded,
+  onUpdated,
+  editBusiness,
 }: {
   onClose: () => void;
   onAdded: (b: Business) => void;
+  onUpdated: (b: Business) => void;
+  editBusiness?: Business;
 }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+  const isEdit = !!editBusiness;
+  const [form, setForm] = useState(isEdit ? businessToForm(editBusiness!) : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -254,8 +286,10 @@ function AddBusinessModal({
     setError("");
     setSaving(true);
     try {
-      const res = await fetch("/api/businesses", {
-        method: "POST",
+      const url = isEdit ? `/api/businesses/${editBusiness!.id}` : "/api/businesses";
+      const method = isEdit ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
@@ -264,8 +298,12 @@ function AddBusinessModal({
         setError(data.error ?? "Failed to save.");
         return;
       }
-      const created = (await res.json()) as Business;
-      onAdded(created);
+      const result = (await res.json()) as Business;
+      if (isEdit) {
+        onUpdated(result);
+      } else {
+        onAdded(result);
+      }
       onClose();
     } catch {
       setError("Could not reach the server.");
@@ -284,7 +322,7 @@ function AddBusinessModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#1f1f1f]">
           <h2 className="font-bold text-[17px] text-[#f0f0f0]" style={{ fontFamily: "Syne, sans-serif" }}>
-            Add New Business
+            {isEdit ? "Edit Business" : "Add New Business"}
           </h2>
           <button
             onClick={onClose}
@@ -431,6 +469,11 @@ function AddBusinessModal({
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Saving…
               </>
+            ) : isEdit ? (
+              <>
+                <Check className="w-4 h-4" />
+                Save Changes
+              </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
@@ -450,6 +493,7 @@ export default function AdminPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editBusiness, setEditBusiness] = useState<Business | undefined>(undefined);
 
   useEffect(() => {
     fetch("/api/businesses")
@@ -465,6 +509,20 @@ export default function AdminPage() {
 
   function handleDeleted(id: string) {
     setBusinesses((prev) => prev.filter((b) => b.id !== id));
+  }
+
+  function handleUpdated(b: Business) {
+    setBusinesses((prev) => prev.map((x) => (x.id === b.id ? b : x)));
+  }
+
+  function openEdit(b: Business) {
+    setEditBusiness(b);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditBusiness(undefined);
   }
 
   return (
@@ -505,12 +563,12 @@ export default function AdminPage() {
               <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
             </div>
           ) : (
-            businesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} />)
+            businesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} onEdit={openEdit} />)
           )}
 
           {/* Add new */}
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setEditBusiness(undefined); setShowForm(true); }}
             className="rounded-2xl border border-dashed border-[#2a2a2a] p-5 flex items-center gap-4 mt-2 hover:border-[#3a3a3a] hover:bg-[#111] transition-all w-full text-left"
           >
             <div className="w-11 h-11 rounded-full bg-[#1f1f1f] border border-[#2a2a2a] flex items-center justify-center text-[#555] text-xl">
@@ -536,7 +594,12 @@ export default function AdminPage() {
       </div>
 
       {showForm && (
-        <AddBusinessModal onClose={() => setShowForm(false)} onAdded={handleAdded} />
+        <AddBusinessModal
+          onClose={closeForm}
+          onAdded={handleAdded}
+          onUpdated={handleUpdated}
+          editBusiness={editBusiness}
+        />
       )}
     </div>
   );
