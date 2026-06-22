@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowRight, Link, Check } from "lucide-react";
+import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { buildShareableUrl, hexToHsl } from "@/lib/configUrl";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
@@ -56,6 +56,15 @@ const QUICK_REPLIES: Record<string, string[]> = {
   beauty: ["Services & prices", "Book appointment", "Products available", "Location"],
   photography: ["Packages & prices", "Book a shoot", "Turnaround time", "Location"],
   other: ["What do you offer?", "Pricing info", "How to order?", "Contact details"],
+};
+
+const BIZ_TYPE_LABELS: Record<string, string> = {
+  wig: "Wig Studio",
+  fashion: "Fashion",
+  food: "Food & Restaurant",
+  beauty: "Beauty & Wellness",
+  photography: "Photography",
+  other: "Business",
 };
 
 // ── WhatsApp Handoff Button ───────────────────────────────────────────────────
@@ -322,9 +331,135 @@ export default function ChatPage() {
   const accentHsl = hexToHsl(accentColor);
 
   return (
-    <div className="flex justify-center bg-black min-h-screen dark">
+    <div className="flex justify-center bg-black dark">
       {accentHsl && <style>{`:root { --primary: ${accentHsl}; }`}</style>}
-      <div className="w-full max-w-[480px] h-[100dvh] flex flex-col bg-background relative shadow-2xl overflow-hidden border-x border-border">
+      <div className="w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border">
+
+        {/* ── Landing Section ────────────────────────────────────────────── */}
+        <section className="flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${accentColor}33` }}>
+
+          {/* Hero row: emoji icon + name + badge + location */}
+          <div className="flex items-start gap-4 mb-7">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
+              style={{ background: `${accentColor}18`, border: `1px solid ${accentColor}33` }}
+            >
+              {BIZ_EMOJIS[config.bizType || "other"]}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-syne font-bold text-[22px] leading-tight text-foreground truncate">
+                {config.bizName}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span
+                  className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize"
+                  style={{ background: `${accentColor}18`, color: accentColor }}
+                >
+                  {BIZ_TYPE_LABELS[config.bizType || "other"] ?? config.bizType}
+                </span>
+                {config.location && (
+                  <span className="text-[12px] text-muted-foreground">
+                    📍 {config.location}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Services & Pricing */}
+          {config.services && (
+            <div className="mb-6">
+              <h2
+                className="text-[11px] font-semibold tracking-widest uppercase mb-3"
+                style={{ color: accentColor }}
+              >
+                Services &amp; Pricing
+              </h2>
+              <div className="flex flex-col gap-2">
+                {config.services
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((line, i) => {
+                    const dashIdx = line.search(/[—–]/);
+                    const name = dashIdx > 0 ? line.slice(0, dashIdx).trim() : line.trim();
+                    const price = dashIdx > 0 ? line.slice(dashIdx + 1).trim() : null;
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-card border border-border"
+                      >
+                        <span className="text-[13px] text-foreground">{name}</span>
+                        {price && (
+                          <span
+                            className="text-[13px] font-semibold ml-3 flex-shrink-0"
+                            style={{ color: accentColor }}
+                          >
+                            {price}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* Contact info */}
+          {(bizPhone || config.instagram) && (
+            <div className="mb-5">
+              <h2
+                className="text-[11px] font-semibold tracking-widest uppercase mb-3"
+                style={{ color: accentColor }}
+              >
+                Contact
+              </h2>
+              <div className="flex flex-col gap-2">
+                {bizPhone && (
+                  <a
+                    href={`https://wa.me/${bizPhone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-card border border-border hover:border-green-500/50 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center text-[15px]">
+                      📱
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground leading-tight">WhatsApp</p>
+                      <p className="text-[13px] text-foreground font-medium">+{bizPhone}</p>
+                    </div>
+                  </a>
+                )}
+                {config.instagram && (
+                  <a
+                    href={`https://instagram.com/${config.instagram.replace("@", "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-card border border-border hover:border-pink-500/50 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-pink-500/10 flex items-center justify-center text-[15px]">
+                      📸
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground leading-tight">Instagram</p>
+                      <p className="text-[13px] text-foreground font-medium">{config.instagram}</p>
+                    </div>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Chat anchor */}
+          <div className="flex items-center gap-2 pt-4 mt-1 border-t border-border">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+            <p className="text-[13px] font-medium text-foreground">Chat with us below</p>
+            <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />
+          </div>
+        </section>
+
+        {/* ── Chat Section ───────────────────────────────────────────────── */}
+        <div className="h-[100dvh] flex flex-col relative overflow-hidden">
 
         {/* Header */}
         <header className="flex-none h-16 border-b border-border flex items-center justify-between px-4 z-10 bg-background/95 backdrop-blur">
@@ -518,7 +653,9 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-      </div>
+        </div> {/* end chat section */}
+
+      </div> {/* end column */}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
