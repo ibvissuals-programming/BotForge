@@ -1026,7 +1026,7 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
           className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[12px] font-medium"
         >
           <Download className="w-4 h-4" />
-          CSV
+          CSV{leads.length > 0 && <> · {leads.length}</>}
         </button>
         <button
           onClick={() => fetchLeads(filterBiz)}
