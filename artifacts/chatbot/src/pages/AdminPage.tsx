@@ -986,8 +986,10 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [loading, setLoading]     = useState(true);
   const [filterBiz, setFilterBiz] = useState<string>("all");
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   const bizMap = Object.fromEntries(businesses.map((b) => [b.id, b]));
+  const displayedLeads = pendingOnly ? leads.filter((l) => !l.contacted) : leads;
 
   function fetchLeads(biz: string) {
     const url = biz !== "all" ? `/api/leads?businessId=${biz}` : "/api/leads";
@@ -1020,13 +1022,24 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
           ))}
         </select>
         <button
-          onClick={() => exportLeadsToCSV(leads, bizMap)}
-          disabled={leads.length === 0}
+          onClick={() => exportLeadsToCSV(displayedLeads, bizMap)}
+          disabled={displayedLeads.length === 0}
           title="Export CSV"
           className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[12px] font-medium"
         >
           <Download className="w-4 h-4" />
-          CSV{leads.length > 0 && <> · {leads.length}</>}
+          CSV{displayedLeads.length > 0 && <> · {displayedLeads.length}</>}
+        </button>
+        <button
+          onClick={() => setPendingOnly((v) => !v)}
+          title={pendingOnly ? "Show all leads" : "Show pending only"}
+          className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-[12px] font-medium transition-colors ${
+            pendingOnly
+              ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+              : "bg-[#1a1a1a] border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a]"
+          }`}
+        >
+          Pending{pendingOnly ? " ✓" : ""}
         </button>
         <button
           onClick={() => fetchLeads(filterBiz)}
@@ -1041,14 +1054,23 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
         </div>
-      ) : leads.length === 0 ? (
+      ) : displayedLeads.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
           <Inbox className="w-8 h-8 text-[#333]" />
-          <p className="text-[13px] text-[#555]">No leads yet</p>
-          <p className="text-[11px] text-[#444]">They'll appear here when customers use the WhatsApp handoff</p>
+          {pendingOnly && leads.length > 0 ? (
+            <>
+              <p className="text-[13px] text-[#555]">All leads contacted</p>
+              <p className="text-[11px] text-[#444]">No pending follow-ups remaining</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[13px] text-[#555]">No leads yet</p>
+              <p className="text-[11px] text-[#444]">They'll appear here when customers use the WhatsApp handoff</p>
+            </>
+          )}
         </div>
       ) : (
-        leads.map((lead) => (
+        displayedLeads.map((lead) => (
           <LeadCard
             key={lead.id}
             lead={lead}
