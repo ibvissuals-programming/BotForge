@@ -42,7 +42,10 @@ router.get("/health", async (_req, res): Promise<void> => {
   if (!dbUrl) {
     db = { connected: false, latencyMs: null, error: "DATABASE_URL not set" };
   } else {
-    const pool = new Pool({ connectionString: dbUrl, connectionTimeoutMillis: 5_000, max: 1 });
+    const dbUrlWithTimeout = dbUrl.includes("?")
+      ? `${dbUrl}&connect_timeout=5`
+      : `${dbUrl}?connect_timeout=5`;
+    const pool = new Pool({ connectionString: dbUrlWithTimeout, connectionTimeoutMillis: 5_000, max: 1 });
     const t0 = Date.now();
     try {
       const client = await pool.connect();

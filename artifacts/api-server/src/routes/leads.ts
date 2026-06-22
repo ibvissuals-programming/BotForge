@@ -4,7 +4,13 @@ import { logger } from "../lib/logger";
 import type { Lead } from "../types/lead";
 
 const router: IRouter = Router();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+function dbUrlWithTimeout(url: string | undefined, secs = 15): string | undefined {
+  if (!url) return url;
+  return url.includes("?") ? `${url}&connect_timeout=${secs}` : `${url}?connect_timeout=${secs}`;
+}
+
+const pool = new Pool({ connectionString: dbUrlWithTimeout(process.env.DATABASE_URL) });
 
 function rowToLead(row: Record<string, unknown>): Lead {
   return {

@@ -75,11 +75,16 @@ export async function runMigrations(): Promise<void> {
     );
   }
 
-  // connectionTimeoutMillis: fail fast (15s) instead of hanging forever
-  // This is the critical fix for production — without it, pool.connect()
-  // blocks indefinitely if the DB is unreachable, preventing app.listen().
+  // connect_timeout=15 sets the PostgreSQL protocol-level TCP socket timeout.
+  // connectionTimeoutMillis only controls pool-queue wait time, NOT the TCP
+  // handshake — so it doesn't help when the host is silently unreachable.
+  // Adding connect_timeout to the URL is the correct low-level fix.
+  const dbUrlWithTimeout = dbUrl.includes("?")
+    ? `${dbUrl}&connect_timeout=15`
+    : `${dbUrl}?connect_timeout=15`;
+
   const pool = new Pool({
-    connectionString: dbUrl,
+    connectionString: dbUrlWithTimeout,
     connectionTimeoutMillis: 15_000,
     idleTimeoutMillis: 30_000,
     max: 3,
