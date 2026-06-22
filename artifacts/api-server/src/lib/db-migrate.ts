@@ -28,8 +28,11 @@ const SCHEMA_SQL = `
     booking_intent      TEXT        NOT NULL DEFAULT 'low',
     questions_asked     TEXT[]      NOT NULL DEFAULT '{}',
     conversation_length INT         NOT NULL DEFAULT 0,
-    summary_text        TEXT        NOT NULL DEFAULT ''
+    summary_text        TEXT        NOT NULL DEFAULT '',
+    contacted           BOOLEAN     NOT NULL DEFAULT FALSE
   );
+  -- idempotent: add contacted column if upgrading from an older schema
+  ALTER TABLE leads ADD COLUMN IF NOT EXISTS contacted BOOLEAN NOT NULL DEFAULT FALSE;
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────

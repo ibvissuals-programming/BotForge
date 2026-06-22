@@ -17,6 +17,7 @@ function rowToLead(row: Record<string, unknown>): Lead {
     questionsAsked: (row.questions_asked as string[]) ?? [],
     conversationLength: (row.conversation_length as number) ?? 0,
     summaryText: (row.summary_text as string) ?? "",
+    contacted: (row.contacted as boolean) ?? false,
   };
 }
 
@@ -74,6 +75,34 @@ router.get("/leads", async (req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Failed to fetch leads");
     res.status(500).json({ error: "Failed to fetch leads" });
+  }
+});
+
+// ── PATCH /leads/:id/contacted ────────────────────────────────────────────────
+
+router.patch("/leads/:id/contacted", async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { contacted } = req.body as { contacted?: boolean };
+
+  if (typeof contacted !== "boolean") {
+    res.status(400).json({ error: "contacted (boolean) is required" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE leads SET contacted = $1 WHERE id = $2 RETURNING *",
+      [contacted, id]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+    logger.info({ id, contacted }, "Lead contacted status updated");
+    res.json(rowToLead(result.rows[0]));
+  } catch (err) {
+    logger.error({ err }, "Failed to update lead contacted status");
+    res.status(500).json({ error: "Failed to update contacted status" });
   }
 });
 

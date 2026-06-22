@@ -14,4 +14,5 @@ export interface Lead {
   questionsAsked: string[];
   conversationLength: number;
   summaryText: string;
+  contacted: boolean;
 }
