@@ -498,7 +498,13 @@ export default function ChatPage() {
         {/* Messages */}
         <div
           ref={scrollRef}
-          className={`flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar ${messages.length > 0 && showSuggestions ? "pb-56" : "pb-24"}`}
+          className={`flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar ${
+            messages.length === 0
+              ? "pb-28"
+              : showSuggestions
+              ? "pb-64"
+              : "pb-36"
+          }`}
         >
           {messages.length === 0 && (
             <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -543,17 +549,19 @@ export default function ChatPage() {
               >
                 {msg.content}
               </div>
-              <span className="text-[10px] text-muted-foreground mt-1.5 px-1 font-medium opacity-70">
+              <span className="text-[10px] text-muted-foreground mt-1 px-1 font-medium opacity-70">
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
               {msg.role === "assistant" && mentionsBooking(msg.content) && (
-                <WhatsAppHandoffButton
-                  messages={messages}
-                  config={config}
-                  businessId={businessId}
-                  phone={bizPhone}
-                  accentColor={accentColor}
-                />
+                <div className="mt-2 mb-1">
+                  <WhatsAppHandoffButton
+                    messages={messages}
+                    config={config}
+                    businessId={businessId}
+                    phone={bizPhone}
+                    accentColor={accentColor}
+                  />
+                </div>
               )}
             </div>
           ))}
@@ -583,7 +591,7 @@ export default function ChatPage() {
 
         {/* Input Bar */}
         {!isLocked && (
-          <div className="flex-none border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10">
+          <div className="flex-none border-t border-border bg-background/95 backdrop-blur-sm absolute bottom-0 left-0 right-0 z-20">
 
             {/* Quick suggestions tray — accessible throughout the conversation */}
             {messages.length > 0 && (
