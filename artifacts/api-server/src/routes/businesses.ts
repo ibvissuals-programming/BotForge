@@ -129,4 +129,25 @@ router.post("/businesses", async (req, res): Promise<void> => {
   }
 });
 
+// ── DELETE /businesses/:id ────────────────────────────────────────────────────
+
+router.delete("/businesses/:id", async (req, res): Promise<void> => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM businesses WHERE id = $1 RETURNING id",
+      [id]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "Business not found" });
+      return;
+    }
+    res.json({ ok: true, id });
+  } catch (err) {
+    logger.error({ err }, "Failed to delete business");
+    res.status(500).json({ error: "Failed to delete business" });
+  }
+});
+
 export default router;

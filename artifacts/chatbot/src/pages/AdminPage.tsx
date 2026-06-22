@@ -9,6 +9,7 @@ import {
   Plus,
   X,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
@@ -73,8 +74,16 @@ function handleSignOut() {
 
 // ── Client Card ───────────────────────────────────────────────────────────────
 
-function ClientCard({ business }: { business: Business }) {
+function ClientCard({
+  business,
+  onDeleted,
+}: {
+  business: Business;
+  onDeleted: (id: string) => void;
+}) {
   const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [, setLocation] = useLocation();
 
   const accent = business.accentColor ?? "#7c6af7";
@@ -92,6 +101,17 @@ function ClientCard({ business }: { business: Business }) {
     const cfg = businessToConfig(business);
     setLocation(`/?c=${encodeConfig(cfg)}`);
   }, [business, setLocation]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/businesses/${business.id}`, { method: "DELETE" });
+      if (res.ok) onDeleted(business.id);
+    } finally {
+      setDeleting(false);
+      setConfirming(false);
+    }
+  }
 
   return (
     <div
@@ -122,7 +142,14 @@ function ClientCard({ business }: { business: Business }) {
               </span>
             </div>
           </div>
-          <div className="w-3 h-3 rounded-full shrink-0 mt-1" style={{ background: accent }} />
+          {/* Delete button */}
+          <button
+            onClick={() => setConfirming(true)}
+            title="Delete client"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#444] hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {business.location && (
@@ -158,6 +185,36 @@ function ClientCard({ business }: { business: Business }) {
           </button>
         </div>
       </div>
+
+      {/* Confirmation overlay */}
+      {confirming && (
+        <div className="absolute inset-0 bg-[#0d0d0d]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-5 rounded-2xl">
+          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+            <Trash2 className="w-5 h-5 text-red-400" />
+          </div>
+          <div className="text-center">
+            <p className="text-[14px] font-semibold text-[#f0f0f0]">Delete {business.bizName}?</p>
+            <p className="text-[12px] text-[#666] mt-1">This cannot be undone.</p>
+          </div>
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={deleting}
+              className="flex-1 py-2 rounded-xl border border-[#2a2a2a] text-[13px] text-[#888] hover:text-[#f0f0f0] hover:border-[#3a3a3a] transition-all disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex-1 py-2 rounded-xl bg-red-500 text-white text-[13px] font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              {deleting ? "Deleting…" : "Yes, delete"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -406,6 +463,10 @@ export default function AdminPage() {
     setBusinesses((prev) => [...prev, b]);
   }
 
+  function handleDeleted(id: string) {
+    setBusinesses((prev) => prev.filter((b) => b.id !== id));
+  }
+
   return (
     <div className="flex justify-center bg-black min-h-screen dark">
       <div className="w-full max-w-[480px] min-h-[100dvh] flex flex-col bg-[#0d0d0d]">
@@ -444,7 +505,7 @@ export default function AdminPage() {
               <Loader2 className="w-6 h-6 animate-spin text-[#444]" />
             </div>
           ) : (
-            businesses.map((b) => <ClientCard key={b.id} business={b} />)
+            businesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} />)
           )}
 
           {/* Add new */}
