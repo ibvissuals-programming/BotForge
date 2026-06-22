@@ -59,7 +59,7 @@ const QUICK_REPLIES: Record<string, string[]> = {
 };
 
 const BIZ_TYPE_LABELS: Record<string, string> = {
-  wig: "Wig Studio",
+  wig: "Wig Revamping",
   fashion: "Fashion",
   food: "Food & Restaurant",
   beauty: "Beauty & Wellness",
@@ -357,6 +357,9 @@ export default function ChatPage() {
                 >
                   {BIZ_TYPE_LABELS[config.bizType || "other"] ?? config.bizType}
                 </span>
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10">
+                  Affordable
+                </span>
                 {config.location && (
                   <span className="text-[12px] text-muted-foreground">
                     📍 {config.location}
@@ -468,9 +471,14 @@ export default function ChatPage() {
               <img src="/icon-192.png" alt="BotForge logo" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h1 className="font-syne font-bold text-[17px] leading-tight text-foreground">
-                {config.bizName}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-syne font-bold text-[17px] leading-tight text-foreground">
+                  {config.bizName}
+                </h1>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-violet-500/15 text-violet-400 leading-none">
+                  ⚡ AI
+                </span>
+              </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 Always online
