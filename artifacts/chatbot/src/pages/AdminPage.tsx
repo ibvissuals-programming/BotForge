@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link as LinkIcon, Check, ArrowRight, ExternalLink, Instagram } from "lucide-react";
+import { Link as LinkIcon, Check, ArrowRight, ExternalLink, Instagram, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import businesses, { type BusinessConfig } from "@/data/businesses";
 import { encodeConfig } from "@/lib/configUrl";
@@ -123,20 +123,37 @@ function ClientCard({ business }: { business: BusinessConfig }) {
   );
 }
 
+function handleSignOut() {
+  localStorage.removeItem("botforge_admin_session");
+  window.location.reload();
+}
+
 export default function AdminPage() {
   return (
     <div className="flex justify-center bg-black min-h-screen dark">
       <div className="w-full max-w-[480px] min-h-[100dvh] flex flex-col bg-[#0d0d0d]">
         <header className="px-5 pt-10 pb-6">
-          <p className="text-[11px] font-semibold tracking-widest text-[#7c6af7] uppercase mb-2">
-            Admin
-          </p>
-          <h1 className="text-2xl font-bold text-[#f0f0f0]" style={{ fontFamily: "Syne, sans-serif" }}>
-            Client Bots
-          </h1>
-          <p className="text-[13px] text-[#888] mt-1">
-            {businesses.length} {businesses.length === 1 ? "client" : "clients"} configured
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[11px] font-semibold tracking-widest text-[#7c6af7] uppercase mb-2">
+                Admin
+              </p>
+              <h1 className="text-2xl font-bold text-[#f0f0f0]" style={{ fontFamily: "Syne, sans-serif" }}>
+                Client Bots
+              </h1>
+              <p className="text-[13px] text-[#888] mt-1">
+                {businesses.length} {businesses.length === 1 ? "client" : "clients"} configured
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              className="flex items-center gap-1.5 text-[12px] text-[#555] hover:text-[#f0f0f0] transition-colors mt-1 px-3 py-2 rounded-xl hover:bg-[#1f1f1f]"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
