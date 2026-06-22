@@ -358,7 +358,15 @@ export default function ChatPage() {
       <div className="w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border">
 
         {/* ── Landing Section ────────────────────────────────────────────── */}
-        <section className="flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${accentColor}33` }}>
+        <section className="relative flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${accentColor}33` }}>
+          <a
+            href={`https://wa.me/2348056683398?text=${encodeURIComponent(`Hi! I saw the BotForge-powered chatbot for ${config.bizName} and I'm interested in getting one for my own business too 🚀`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute top-4 right-5 text-[10px] italic font-medium text-violet-400/70 hover:text-violet-400 transition-colors flex items-center gap-0.5"
+          >
+            ⚡ Powered by BotForge
+          </a>
 
           {/* Hero row: emoji icon + name + badge + location */}
           <div className="flex items-start gap-4 mb-7">
@@ -384,14 +392,6 @@ export default function ChatPage() {
                     📍 {config.location}
                   </span>
                 )}
-                <a
-                  href={DEVELOPER_WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] font-semibold flex items-center gap-0.5 text-violet-400/80 hover:text-violet-400 transition-colors leading-none"
-                >
-                  ⚡ Powered by BotForge
-                </a>
               </div>
               <p className="text-[12px] text-muted-foreground mt-2 leading-snug">
                 Quality wig care, prices that don't break the bank 💕
