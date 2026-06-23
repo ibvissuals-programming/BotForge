@@ -122,10 +122,19 @@ Expected output for a ready-to-deploy state:
        1 business found
   ✅  GET /api/leads — returns valid array
        0 leads found
+  ✅  GET localhost:3000 — chatbot serves + Fortune config in API
+       HTTP 200, app shell ready · "Styled By Fortune" config confirmed
 
   ──────────────────────────────────
   All checks passed — safe to publish ✅
 ```
+
+> **Note on check 6:** The chatbot is a React SPA — the HTML it serves is always the
+> same static shell containing `<title>BotForge</title>` and `<div id="root"></div>`.
+> "Styled By Fortune" renders client-side after React loads the business config from
+> the API. The check verifies both sides: the chatbot shell is being served (HTTP 200
+> + correct HTML) *and* Fortune's business config is present in the API that the
+> chatbot loads at runtime.
 
 If any check shows ❌, resolve the underlying issue before publishing.
 The script exits with code 1 on failure so it can be piped in CI if needed.

@@ -98,6 +98,33 @@ async function run() {
     return `${body.length} lead${body.length === 1 ? "" : "s"} found`;
   }));
 
+  // ── 6. Customer-facing chatbot ────────────────────────────────────────────
+  results.push(await check("GET localhost:3000 — chatbot serves + Fortune config in API", async () => {
+    // 6a: chatbot app shell
+    const chatbotRes = await fetch("http://localhost:3000/");
+    if (!chatbotRes.ok) throw new Error(`Chatbot HTTP ${chatbotRes.status} (is the chatbot workflow running?)`);
+    const html = await chatbotRes.text();
+    if (!html.includes("BotForge")) throw new Error('HTML missing "BotForge" — wrong app or build broken');
+    if (!html.includes('id="root"')) throw new Error('HTML missing id="root" — SPA mount point absent');
+
+    // 6b: Fortune's business config present in API (this is what the chatbot loads at runtime)
+    const loginRes = await fetch(`${API}/api/auth/admin-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: PASSWORD }),
+    });
+    const cookie = loginRes.headers.get("set-cookie") ?? "";
+    const bizRes = await fetch(`${API}/api/businesses`, {
+      headers: cookie ? { Cookie: cookie } : {},
+    });
+    if (!bizRes.ok) throw new Error(`Businesses API HTTP ${bizRes.status}`);
+    const businesses = (await bizRes.json()) as Array<{ bizName: string }>;
+    const fortune = businesses.find((b) => b.bizName.toLowerCase().includes("fortune"));
+    if (!fortune) throw new Error('"Styled By Fortune" not found in businesses — chatbot config missing');
+
+    return `HTTP 200, app shell ready · "${fortune.bizName}" config confirmed`;
+  }));
+
   // ── Print results ──────────────────────────────────────────────────────────
   let allPassed = true;
   for (const r of results) {
