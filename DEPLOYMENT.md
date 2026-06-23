@@ -5,6 +5,85 @@
 
 ---
 
+## 🚀 First Time Setup (after GitHub reimport)
+
+Follow these steps **in order** immediately after importing the project.
+Do not skip or reorder — each step unlocks the next.
+
+### Step A — Add the PostgreSQL integration
+
+In the Replit sidebar, open **Database** and add the built-in PostgreSQL
+integration if it is not already connected. This automatically sets
+`DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE`
+in the editor environment. No manual connection string needed.
+
+### Step B — Add the two required secrets
+
+Go to **Replit → Secrets** and add exactly these two:
+
+| Secret name | Where to get it |
+|---|---|
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) → API Keys (free tier available) |
+| `BOTFORGE_CEO_PASSWORD` | Choose any strong password — this is the admin dashboard login |
+
+Do **not** add `DATABASE_URL` here. Replit sets it automatically via the
+PostgreSQL integration (step A).
+
+### Step C — Run the secrets check
+
+```
+pnpm run secrets:check
+```
+
+Expected output:
+```
+  ✅  GROQ_API_KEY
+  ✅  BOTFORGE_CEO_PASSWORD
+  ✅  DATABASE_URL
+  All secrets present — server fully operational ✅
+```
+
+If any secret shows ❌, add it and re-run. Do not proceed until all three
+show ✅.
+
+### Step D — Start both workflows
+
+In the Replit workflow panel, start:
+1. **API Server** (`artifacts/api-server: API Server`)
+2. **Business Chatbot** (`artifacts/chatbot: web`)
+
+On first boot, the API server automatically runs DB migrations —
+`CREATE TABLE IF NOT EXISTS` for `businesses` and `leads`, then seeds
+"Styled By Fortune" if the table is empty. **No manual SQL is needed.**
+Check the API server logs to confirm:
+```
+DB migration: schema ready ✅
+DB migration: seeded business ✅   (first boot only)
+```
+
+### Step E — Run the pre-publish smoke test
+
+```
+pnpm run pre-publish
+```
+
+Expected output (all 6 checks green):
+```
+  ✅  GET /api/healthz — server responds          HTTP 200
+  ✅  GET /api/healthz — DB connected             connected, latency Xms
+  ✅  POST /api/auth/admin-login                  authenticated
+  ✅  GET /api/businesses — returns valid array   1 business found
+  ✅  GET /api/leads — returns valid array        0 leads found
+  ✅  GET localhost:3000 — chatbot serves         HTTP 200, app shell ready · "Styled By Fortune" config confirmed
+
+  All checks passed — safe to publish ✅
+```
+
+All 6 green = the project is fully working and safe to publish. Any ❌
+means something is wrong — the error message will tell you exactly what.
+
+---
+
 ## ⚠️ "1 secret out of sync" Warning on the Publish Screen — Expected, Safe to Ignore
 
 **You will always see this warning when publishing.** It looks alarming but is
