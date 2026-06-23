@@ -988,9 +988,13 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
   const [loading, setLoading]     = useState(true);
   const [filterBiz, setFilterBiz] = useState<string>("all");
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [leadSearch, setLeadSearch] = useState("");
 
   const bizMap = Object.fromEntries(businesses.map((b) => [b.id, b]));
-  const displayedLeads = pendingOnly ? leads.filter((l) => !l.contacted) : leads;
+  const searchTerm = leadSearch.trim().toLowerCase();
+  const displayedLeads = leads
+    .filter((l) => (pendingOnly ? !l.contacted : true))
+    .filter((l) => searchTerm ? (l.customerName?.toLowerCase().includes(searchTerm) ?? false) : true);
 
   function fetchLeads(biz: string) {
     const url = biz !== "all" ? `/api/leads?businessId=${biz}` : "/api/leads";
@@ -1010,8 +1014,28 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
 
   return (
     <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
+      {/* Name search */}
+      <div className="relative mt-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#444] pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search by customer name…"
+          value={leadSearch}
+          onChange={(e) => setLeadSearch(e.target.value)}
+          className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-[#ccc] placeholder-[#444] text-[13px] rounded-xl pl-8 pr-3 py-2.5 outline-none focus:border-[#555] transition-colors"
+        />
+        {leadSearch && (
+          <button
+            onClick={() => setLeadSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* Filter bar + Export */}
-      <div className="flex items-center gap-2 mt-1 mb-1">
+      <div className="flex items-center gap-2 mb-1">
         <select
           value={filterBiz}
           onChange={(e) => setFilterBiz(e.target.value)}
@@ -1058,7 +1082,12 @@ function LeadsInbox({ businesses }: { businesses: Business[] }) {
       ) : displayedLeads.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
           <Inbox className="w-8 h-8 text-[#333]" />
-          {pendingOnly && leads.length > 0 ? (
+          {searchTerm && leads.length > 0 ? (
+            <>
+              <p className="text-[13px] text-[#555]">No leads match "{leadSearch.trim()}"</p>
+              <p className="text-[11px] text-[#444]">Try a different name</p>
+            </>
+          ) : pendingOnly && leads.length > 0 ? (
             <>
               <p className="text-[13px] text-[#555]">All leads contacted</p>
               <p className="text-[11px] text-[#444]">No pending follow-ups remaining</p>
