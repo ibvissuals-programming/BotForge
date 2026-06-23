@@ -99,9 +99,40 @@ Replit recognises for injecting env vars into the production run process. Any
 other name (e.g. `[services.production.run.env]`) is silently ignored — see
 "PORT / artifact.toml Bug" section below for the full history.
 
-### Step 4 — Publish
+### Step 4 — Run the pre-publish smoke test
 
-All three checks green → publish.
+With the api-server workflow running, execute:
+
+```
+pnpm run pre-publish
+```
+
+Expected output for a ready-to-deploy state:
+```
+  BotForge — Pre-Publish Smoke Test
+  ──────────────────────────────────
+
+  ✅  GET /api/healthz — server responds
+       HTTP 200
+  ✅  GET /api/healthz — DB connected
+       connected, latency 11ms
+  ✅  POST /api/auth/admin-login — endpoint reachable
+       authenticated
+  ✅  GET /api/businesses — returns valid array
+       1 business found
+  ✅  GET /api/leads — returns valid array
+       0 leads found
+
+  ──────────────────────────────────
+  All checks passed — safe to publish ✅
+```
+
+If any check shows ❌, resolve the underlying issue before publishing.
+The script exits with code 1 on failure so it can be piped in CI if needed.
+
+### Step 5 — Publish
+
+All four checks green → publish.
 
 ---
 
