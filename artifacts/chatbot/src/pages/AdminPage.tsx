@@ -181,6 +181,19 @@ function QRModal({
 
 // ── Client Card ───────────────────────────────────────────────────────────────
 
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days === 1 ? "1 day" : `${days} days`} ago`;
+  const months = Math.floor(days / 30);
+  return `${months === 1 ? "1 month" : `${months} months`} ago`;
+}
+
 function ClientCard({
   business,
   onDeleted,
@@ -191,6 +204,7 @@ function ClientCard({
   onDeleted: (id: string) => void;
   onEdit: (b: Business) => void;
   leadCount: number;
+  lastLeadAt: Date | null;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -314,9 +328,14 @@ function ClientCard({
                 {BIZ_TYPE_OPTIONS.find((o) => o.value === business.bizType)?.label ?? business.bizType}
               </span>
               {leadCount > 0 && (
-                <span className="ml-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full inline-block bg-[#1f1f1f] border border-[#2a2a2a] text-[#888]">
-                  {leadCount} {leadCount === 1 ? "lead" : "leads"}
-                </span>
+                <>
+                  <span className="ml-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full inline-block bg-[#1f1f1f] border border-[#2a2a2a] text-[#888]">
+                    {leadCount} {leadCount === 1 ? "lead" : "leads"}
+                  </span>
+                  {lastLeadAt && (
+                    <span className="ml-1.5 text-[11px] text-[#555]">· {timeAgo(lastLeadAt)}</span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1343,6 +1362,11 @@ export default function AdminPage() {
                   onDeleted={handleDeleted}
                   onEdit={openEdit}
                   leadCount={allLeads.filter((l) => l.businessId === b.id).length}
+                  lastLeadAt={(() => {
+                    const bLeads = allLeads.filter((l) => l.businessId === b.id);
+                    if (!bLeads.length) return null;
+                    return new Date(Math.max(...bLeads.map((l) => new Date(l.timestamp).getTime())));
+                  })()}
                 />
               ))
             )}
