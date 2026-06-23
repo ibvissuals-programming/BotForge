@@ -185,10 +185,12 @@ function ClientCard({
   business,
   onDeleted,
   onEdit,
+  leadCount,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
   onEdit: (b: Business) => void;
+  leadCount: number;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -311,6 +313,11 @@ function ClientCard({
               >
                 {BIZ_TYPE_OPTIONS.find((o) => o.value === business.bizType)?.label ?? business.bizType}
               </span>
+              {leadCount > 0 && (
+                <span className="ml-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full inline-block bg-[#1f1f1f] border border-[#2a2a2a] text-[#888]">
+                  {leadCount} {leadCount === 1 ? "lead" : "leads"}
+                </span>
+              )}
             </div>
           </div>
           {/* Edit / Delete buttons */}
@@ -1329,7 +1336,15 @@ export default function AdminPage() {
                 <p className="text-[11px] text-[#444]">Try a different name</p>
               </div>
             ) : (
-              filteredBusinesses.map((b) => <ClientCard key={b.id} business={b} onDeleted={handleDeleted} onEdit={openEdit} />)
+              filteredBusinesses.map((b) => (
+                <ClientCard
+                  key={b.id}
+                  business={b}
+                  onDeleted={handleDeleted}
+                  onEdit={openEdit}
+                  leadCount={allLeads.filter((l) => l.businessId === b.id).length}
+                />
+              ))
             )}
 
             {/* Add new */}
