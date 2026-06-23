@@ -199,12 +199,15 @@ function ClientCard({
   onDeleted,
   onEdit,
   leadCount,
+  lastLeadAt,
+  onViewLeads,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
   onEdit: (b: Business) => void;
   leadCount: number;
   lastLeadAt: Date | null;
+  onViewLeads: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -398,6 +401,16 @@ function ClientCard({
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {leadCount > 0 && (
+          <button
+            onClick={onViewLeads}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-dashed border-[#2a2a2a] text-[#666] hover:text-[#f0f0f0] hover:border-[#444] hover:bg-[#1f1f1f] transition-all"
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            View {leadCount} {leadCount === 1 ? "lead" : "leads"} →
+          </button>
+        )}
 
         {/* WhatsApp intro message */}
         <button
@@ -1009,10 +1022,10 @@ function exportLeadsToCSV(leads: Lead[], bizMap: Record<string, Business | undef
   URL.revokeObjectURL(url);
 }
 
-function LeadsInbox({ businesses }: { businesses: Business[] }) {
+function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Business[]; initialFilterBiz?: string }) {
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [filterBiz, setFilterBiz] = useState<string>("all");
+  const [filterBiz, setFilterBiz] = useState<string>(initialFilterBiz);
   const [pendingOnly, setPendingOnly] = useState(false);
   const [leadSearch, setLeadSearch] = useState("");
 
@@ -1162,6 +1175,7 @@ export default function AdminPage() {
   const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [clientSearch, setClientSearch] = useState("");
+  const [leadsJumpBiz, setLeadsJumpBiz] = useState<string | undefined>(undefined);
 
   const filteredBusinesses = clientSearch.trim()
     ? businesses.filter((b) =>
@@ -1195,6 +1209,14 @@ export default function AdminPage() {
 
   function handleLeadsTabClick() {
     setActiveTab("leads");
+    setLeadsJumpBiz(undefined);
+    localStorage.setItem(LEADS_VIEWED_KEY, Date.now().toString());
+    setNewLeadsCount(0);
+  }
+
+  function handleViewLeads(bizId: string) {
+    setActiveTab("leads");
+    setLeadsJumpBiz(bizId);
     localStorage.setItem(LEADS_VIEWED_KEY, Date.now().toString());
     setNewLeadsCount(0);
   }
@@ -1367,6 +1389,7 @@ export default function AdminPage() {
                     if (!bLeads.length) return null;
                     return new Date(Math.max(...bLeads.map((l) => new Date(l.timestamp).getTime())));
                   })()}
+                  onViewLeads={() => handleViewLeads(b.id)}
                 />
               ))
             )}
@@ -1386,7 +1409,11 @@ export default function AdminPage() {
             </button>
           </div>
         ) : (
-          <LeadsInbox businesses={businesses} />
+          <LeadsInbox
+            key={leadsJumpBiz ?? "all"}
+            businesses={businesses}
+            initialFilterBiz={leadsJumpBiz}
+          />
         )}
 
         {/* Footer */}
