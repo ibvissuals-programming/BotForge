@@ -5,6 +5,49 @@
 
 ---
 
+## ⚠️ "1 secret out of sync" Warning on the Publish Screen — Expected, Safe to Ignore
+
+**You will always see this warning when publishing.** It looks alarming but is
+purely informational and will never cause a deploy failure.
+
+### What the warning says
+> "1 secret out of sync — a project editor secret is missing from this environment"
+> Referencing: `DATABASE_URL` (and possibly `PGHOST`, `PGPORT`, `PGUSER`,
+> `PGPASSWORD`, `PGDATABASE`)
+
+### Why it appears
+
+Replit's Publish screen does a mechanical diff between two secret namespaces:
+
+| Namespace | Who sets it | What's there |
+|---|---|---|
+| **Editor secrets** | Replit PostgreSQL integration (automatic) | `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` |
+| **Deployments → Secrets** | You (manually) | `GROQ_API_KEY`, `BOTFORGE_CEO_PASSWORD` only |
+
+`DATABASE_URL` is present in the editor but **intentionally absent** from
+Deployments → Secrets. Replit's publish UI sees this gap and calls it "out of
+sync." It is not an error — it is the correct, deliberate configuration.
+
+### Why DATABASE_URL must NOT be in Deployments → Secrets
+
+Replit injects its own production `DATABASE_URL` automatically into every
+deployed process. If you manually add `DATABASE_URL` to Deployments → Secrets,
+your manually-set value **overrides** Replit's injection. That manual value
+almost always contains the `helium` dev-container hostname, which is
+unreachable from production — causing a silent TCP hang on startup.
+
+The fix is to leave `DATABASE_URL` out of Deployments → Secrets entirely and
+let Replit inject it. The "out of sync" warning is the side-effect of doing
+exactly the right thing.
+
+### How to respond to this warning
+
+**Nothing.** Click through and continue the publish. Do not add `DATABASE_URL`
+to Deployments → Secrets in an attempt to silence the warning — that would
+break production.
+
+---
+
 ## Pre-Publish Checklist
 
 Run these steps **in order** before every publish attempt. Each step catches a
