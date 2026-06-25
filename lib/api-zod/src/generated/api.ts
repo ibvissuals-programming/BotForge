@@ -28,6 +28,7 @@ export const SendChatMessageBody = zod.object({
   "config": zod.object({
   "bizName": zod.string(),
   "bizType": zod.string().optional(),
+  "phone": zod.string().nullish(),
   "services": zod.string().nullish(),
   "location": zod.string().nullish(),
   "howToOrder": zod.string().nullish(),

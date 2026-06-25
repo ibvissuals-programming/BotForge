@@ -26,6 +26,8 @@ export interface BotConfig {
   bizName: string;
   bizType?: string;
   /** @nullable */
+  phone?: string | null;
+  /** @nullable */
   services?: string | null;
   /** @nullable */
   location?: string | null;

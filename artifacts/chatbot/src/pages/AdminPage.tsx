@@ -86,6 +86,7 @@ function businessToConfig(b: Business): BotConfig {
   return {
     bizName: b.bizName,
     bizType: b.bizType,
+    phone: b.phone ?? null,
     services: b.services ?? null,
     location: b.location ?? null,
     howToOrder: b.howToOrder ?? null,

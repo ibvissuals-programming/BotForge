@@ -60,6 +60,34 @@ const SEED_BUSINESSES = [
       "Got questions beyond what's above? Ask me anything about booking, timing, or your specific hair needs! 💕",
     accentColor: "#b5517a",
   },
+  {
+    id: "rossy-cakes-events-management",
+    bizName: "Rossy Cakes & Events Management",
+    bizType: "food",
+    phone: "2348066539706",
+    services: [
+      "Tagline: Making your moments sweeter and more memorable",
+      "",
+      "CAKE PRICE LIST (prices are per layer, in Naira):",
+      "Bento Cake (4\") — ₦10,000",
+      "Bento Cake (5\") — ₦12,000",
+      "6\" Cake — ₦6,800",
+      "7\" Cake — ₦7,500",
+      "8\" Cake — ₦12,000",
+      "10\" Cake — ₦27,500",
+      "12\" Cake — ₦42,000",
+      "14\" Cake — ₦55,000",
+      "",
+      "Custom designs are available. All cakes are freshly baked with quality ingredients. Orders should be placed in advance.",
+    ].join("\n"),
+    location: "33 Rumuchika Street, Mgbuakara, Off Elioparanwo Road",
+    howToOrder: "Call or WhatsApp 08066539706 to place your order. Please order in advance and share your design ideas if you want a custom cake.",
+    instagram: null,
+    personality: "Warm, celebratory, and helpful. Excited about making special moments memorable. Uses friendly, encouraging language.",
+    welcomeMsg:
+      "Have a question about our cakes or events? Ask me anything — let's make your moment sweeter! 🎂",
+    accentColor: "#e07a5f",
+  },
 ];
 
 // ── Runner ────────────────────────────────────────────────────────────────────
@@ -97,46 +125,38 @@ export async function runMigrations(): Promise<void> {
     await client.query(SCHEMA_SQL);
     logger.info("DB migration: schema ready ✅");
 
-    // 2. Seed only when the businesses table is completely empty
-    const { rows } = await client.query<{ count: string }>(
-      "SELECT COUNT(*)::text AS count FROM businesses"
-    );
-    const count = parseInt(rows[0]?.count ?? "0", 10);
-
-    if (count === 0) {
-      logger.info("DB migration: businesses table empty — seeding defaults …");
-
-      for (const biz of SEED_BUSINESSES) {
-        await client.query(
-          `INSERT INTO businesses
-             (id, biz_name, biz_type, phone, services, location, how_to_order,
-              instagram, personality, welcome_msg, accent_color)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-           ON CONFLICT (id) DO NOTHING`,
-          [
-            biz.id,
-            biz.bizName,
-            biz.bizType,
-            biz.phone,
-            biz.services,
-            biz.location,
-            biz.howToOrder,
-            biz.instagram,
-            biz.personality,
-            biz.welcomeMsg,
-            biz.accentColor,
-          ]
-        );
-        logger.info({ id: biz.id, name: biz.bizName }, "DB migration: seeded business ✅");
-      }
-
-      logger.info("DB migration: seed complete ✅");
-    } else {
-      logger.info(
-        { existingCount: count },
-        "DB migration: businesses table not empty — skipping seed ✅"
+    // 2. Seed default businesses — idempotent per-row via ON CONFLICT DO NOTHING.
+    //    Runs every boot so new seed entries are added to existing databases
+    //    without disrupting data already present.
+    logger.info("DB migration: seeding default businesses …");
+    for (const biz of SEED_BUSINESSES) {
+      const result = await client.query(
+        `INSERT INTO businesses
+           (id, biz_name, biz_type, phone, services, location, how_to_order,
+            instagram, personality, welcome_msg, accent_color)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          biz.id,
+          biz.bizName,
+          biz.bizType,
+          biz.phone,
+          biz.services,
+          biz.location,
+          biz.howToOrder,
+          biz.instagram,
+          biz.personality,
+          biz.welcomeMsg,
+          biz.accentColor,
+        ]
       );
+      if ((result.rowCount ?? 0) > 0) {
+        logger.info({ id: biz.id, name: biz.bizName }, "DB migration: seeded business ✅");
+      } else {
+        logger.info({ id: biz.id }, "DB migration: business already exists — skipped ✅");
+      }
     }
+    logger.info("DB migration: seed complete ✅");
   } finally {
     client.release();
     await pool.end();
