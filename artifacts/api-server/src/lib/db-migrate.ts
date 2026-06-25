@@ -63,7 +63,7 @@ const SEED_BUSINESSES = [
   {
     id: "rossy-cakes-events-management",
     bizName: "Rossy Cakes & Events Management",
-    bizType: "food",
+    bizType: "cake",
     phone: "2348066539706",
     services: [
       "Tagline: Making your moments sweeter and more memorable",
