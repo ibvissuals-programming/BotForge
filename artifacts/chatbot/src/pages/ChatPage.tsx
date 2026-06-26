@@ -444,7 +444,7 @@ export default function ChatPage() {
         {/* ── Landing Section ────────────────────────────────────────────── */}
         <section className="relative flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${accentColor}33` }}>
           <a
-            href={`https://wa.me/2348056683398?text=${encodeURIComponent(`Hi! I saw the BotForge-powered chatbot for ${config.bizName} and I'm interested in getting one for my own business too 🚀`)}`}
+            href={`${DEVELOPER_WHATSAPP_URL}?text=${encodeURIComponent(`Hi! I saw the BotForge-powered chatbot for ${config.bizName} and I'm interested in getting one for my own business too 🚀`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="absolute top-4 right-5 text-[10px] italic font-medium text-violet-400/70 hover:text-violet-400 transition-colors flex items-center gap-0.5"
