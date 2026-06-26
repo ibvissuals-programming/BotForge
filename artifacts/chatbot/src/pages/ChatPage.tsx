@@ -141,6 +141,14 @@ function WhatsAppHandoffButton({
 }: WhatsAppHandoffProps) {
   const [isSummarizing, setIsSummarizing] = useState(false);
 
+  if (!phone) {
+    return (
+      <p className="mt-2 text-[13px] text-muted-foreground italic">
+        WhatsApp contact is not available for this business yet.
+      </p>
+    );
+  }
+
   const saveLead = (lead: Lead): void => {
     fetch("/api/leads", {
       method: "POST",
@@ -252,7 +260,7 @@ function DeveloperCTA() {
 export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [businessId, setBusinessId] = useState("");
-  const [bizPhone, setBizPhone] = useState("2348163716199");
+  const [bizPhone, setBizPhone] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -332,14 +340,14 @@ export default function ChatPage() {
         if (urlConfig) {
           const match = list.find((b) => b.bizName === urlConfig.bizName);
           setBusinessId(match?.id ?? "");
-          setBizPhone(urlConfig.phone ?? match?.phone ?? "2348163716199");
+          setBizPhone(urlConfig.phone ?? match?.phone ?? "");
           setConfig(urlConfig);
           return;
         }
         const biz = list[0];
         if (!biz) return;
         setBusinessId(biz.id);
-        setBizPhone(biz.phone ?? "2348163716199");
+        setBizPhone(biz.phone ?? "");
         setConfig({
           bizName: biz.bizName,
           bizType: biz.bizType,
