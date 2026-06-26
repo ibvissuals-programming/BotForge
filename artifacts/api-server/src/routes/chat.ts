@@ -112,6 +112,7 @@ router.post("/chat/summarize", async (req, res): Promise<void> => {
     questionsAsked: [],
     conversationLength: userMsgCount,
     summaryText: fallbackSummary,
+    contacted: false,
   };
 
   try {
@@ -173,6 +174,7 @@ Rules:
         typeof parsed.summaryText === "string" && parsed.summaryText.trim()
           ? parsed.summaryText.trim()
           : fallbackSummary,
+      contacted: false,
     };
 
     res.json(leadData);
