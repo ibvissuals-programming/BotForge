@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { buildShareableUrl, hexToHsl, getConfigFromUrl, decodeConfig } from "@/lib/configUrl";
+import { BIZ_EMOJIS, BIZ_TYPE_LABELS, type BookingIntent } from "@/lib/bizTypes";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,8 +33,6 @@ type AccessTier = "free" | "trial-ended" | "demo" | "demo-ended";
 
 // ── Lead type (frontend mirror of backend Lead) ───────────────────────────────
 
-type BookingIntent = "low" | "medium" | "high";
-
 interface Lead {
   id: string;
   businessId: string;
@@ -48,16 +47,6 @@ interface Lead {
 
 // ── UI maps ──────────────────────────────────────────────────────────────────
 
-const BIZ_EMOJIS: Record<string, string> = {
-  wig: "💇‍♀️",
-  fashion: "👗",
-  food: "🍽️",
-  cake: "🎂",
-  beauty: "✨",
-  photography: "📸",
-  other: "💼",
-};
-
 const QUICK_REPLIES: Record<string, string[]> = {
   wig: ["Can I book for this weekend?", "How long does a session take?", "Can I combine two services?", "Do you handle damaged or thin hair?"],
   fashion: ["Can you make something custom for me?", "Do you have my size in stock?", "How long does an order take?", "Can I mix pieces from different collections?"],
@@ -66,16 +55,6 @@ const QUICK_REPLIES: Record<string, string[]> = {
   beauty: ["Can I book for this week?", "Do you work with sensitive skin?", "How long does a session take?", "Can I bundle two treatments?"],
   photography: ["Are you available on my date?", "Can I request a specific style or theme?", "How soon do I get my photos?", "Do you offer couple or group shoots?"],
   other: ["Are you available this week?", "Can you handle a custom request?", "How long does it usually take?", "Can I combine two services?"],
-};
-
-const BIZ_TYPE_LABELS: Record<string, string> = {
-  wig: "Wig Revamping",
-  fashion: "Fashion",
-  food: "Food & Restaurant",
-  cake: "Cakes & Events",
-  beauty: "Beauty & Wellness",
-  photography: "Photography",
-  other: "Business",
 };
 
 // ── Service block parser ──────────────────────────────────────────────────────

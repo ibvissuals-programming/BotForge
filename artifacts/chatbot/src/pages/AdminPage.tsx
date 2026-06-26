@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { buildShareableUrl } from "@/lib/configUrl";
+import { BIZ_EMOJIS, BIZ_TYPE_OPTIONS, type BookingIntent } from "@/lib/bizTypes";
 import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
 import type { BotConfig } from "@workspace/api-client-react";
 
@@ -45,8 +46,6 @@ interface Business {
   accentColor?: string | null;
 }
 
-type BookingIntent = "low" | "medium" | "high";
-
 interface Lead {
   id: string;
   businessId: string;
@@ -59,28 +58,6 @@ interface Lead {
   summaryText: string;
   contacted: boolean;
 }
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const BIZ_EMOJIS: Record<string, string> = {
-  wig: "💇‍♀️",
-  fashion: "👗",
-  food: "🍽️",
-  cake: "🎂",
-  beauty: "✨",
-  photography: "📸",
-  other: "💼",
-};
-
-const BIZ_TYPE_OPTIONS = [
-  { value: "wig", label: "Wig / Hair" },
-  { value: "fashion", label: "Fashion" },
-  { value: "food", label: "Food" },
-  { value: "cake", label: "Cakes & Events" },
-  { value: "beauty", label: "Beauty" },
-  { value: "photography", label: "Photography" },
-  { value: "other", label: "Other" },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
