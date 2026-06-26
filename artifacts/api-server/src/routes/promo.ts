@@ -1,38 +1,9 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { groqComplete } from "../lib/groq";
 
 const router: IRouter = Router();
-
-async function groqChat(
-  messages: object[],
-  maxTokens = 300,
-  temperature = 0.9,
-): Promise<string> {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq error: ${errText}`);
-  }
-
-  const data = (await response.json()) as {
-    choices: { message: { content: string } }[];
-  };
-  return data.choices[0]?.message?.content?.trim() ?? "";
-}
 
 function buildPromoPrompt(biz: {
   bizName: string;
@@ -78,15 +49,18 @@ router.post("/promo/generate", requireAdmin, async (req, res): Promise<void> => 
   }
 
   try {
-    const caption = await groqChat([
-      {
-        role: "user",
-        content: buildPromoPrompt({ bizName, bizType, services, location, personality }),
-      },
-    ]);
+    const caption = await groqComplete(
+      [
+        {
+          role: "user",
+          content: buildPromoPrompt({ bizName, bizType, services, location, personality }),
+        },
+      ],
+      { maxTokens: 300, temperature: 0.9 },
+    );
 
     logger.info({ bizName }, "promo caption generated");
-    res.json({ caption });
+    res.json({ caption: caption.trim() });
   } catch (err) {
     logger.error({ err }, "Failed to generate promo caption");
     res.status(500).json({ error: "Failed to generate caption. Please try again." });

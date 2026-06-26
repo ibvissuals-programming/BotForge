@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { groqComplete } from "../lib/groq";
 import type { Lead, BookingIntent } from "../types/lead";
 
 const router: IRouter = Router();
@@ -50,40 +51,6 @@ ${contactRule}
 - Keep replies concise and natural — this is a chat, not an essay`;
 }
 
-// ── Groq helper ──────────────────────────────────────────────────────────────
-
-async function groqFetch(
-  messages: object[],
-  maxTokens = 400,
-  temperature = 0.8,
-  jsonMode = false,
-): Promise<string> {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText);
-  }
-
-  const data = (await response.json()) as {
-    choices: { message: { content: string } }[];
-  };
-  return data.choices[0]?.message?.content ?? "";
-}
-
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 /** POST /chat/send — main AI reply */
@@ -108,7 +75,7 @@ router.post("/chat/send", async (req, res): Promise<void> => {
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ];
 
-    const content = await groqFetch(groqMessages);
+    const content = await groqComplete(groqMessages);
     res.json({
       content: content || "Sorry, I could not process that. Please try again.",
     });
@@ -170,14 +137,12 @@ Rules:
 - If no service is mentioned, use ["General inquiry"]
 - Output valid JSON only. No markdown fences, no explanation.`;
 
-    const raw = await groqFetch(
+    const raw = await groqComplete(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Conversation:\n${conversationText}` },
       ],
-      600,
-      0.3,
-      true,
+      { maxTokens: 600, temperature: 0.3, jsonMode: true },
     );
 
     let parsed: Record<string, unknown>;
