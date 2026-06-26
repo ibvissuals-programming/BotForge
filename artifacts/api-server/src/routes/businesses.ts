@@ -1,10 +1,16 @@
 import { Router, type IRouter } from "express";
 import { Pool } from "pg";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+function dbUrlWithTimeout(url: string | undefined, secs = 15): string | undefined {
+  if (!url) return url;
+  return url.includes("?") ? `${url}&connect_timeout=${secs}` : `${url}?connect_timeout=${secs}`;
+}
+
+const pool = new Pool({ connectionString: dbUrlWithTimeout(process.env.DATABASE_URL) });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,7 +54,7 @@ function slugify(name: string): string {
     .slice(0, 60);
 }
 
-// ── GET /businesses ───────────────────────────────────────────────────────────
+// ── GET /businesses — public (ChatPage uses this to load bot config) ──────────
 
 router.get("/businesses", async (_req, res): Promise<void> => {
   try {
@@ -62,9 +68,9 @@ router.get("/businesses", async (_req, res): Promise<void> => {
   }
 });
 
-// ── POST /businesses ──────────────────────────────────────────────────────────
+// ── POST /businesses — admin only ─────────────────────────────────────────────
 
-router.post("/businesses", async (req, res): Promise<void> => {
+router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
   const {
     bizName,
     bizType,
@@ -86,7 +92,6 @@ router.post("/businesses", async (req, res): Promise<void> => {
   const baseId = slugify(bizName);
 
   try {
-    // ensure unique id by appending a suffix if needed
     const existing = await pool.query(
       "SELECT id FROM businesses WHERE id LIKE $1 ORDER BY created_at DESC LIMIT 10",
       [`${baseId}%`]
@@ -129,9 +134,9 @@ router.post("/businesses", async (req, res): Promise<void> => {
   }
 });
 
-// ── PUT /businesses/:id ───────────────────────────────────────────────────────
+// ── PUT /businesses/:id — admin only ──────────────────────────────────────────
 
-router.put("/businesses/:id", async (req, res): Promise<void> => {
+router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const {
     bizName,
@@ -184,9 +189,9 @@ router.put("/businesses/:id", async (req, res): Promise<void> => {
   }
 });
 
-// ── DELETE /businesses/:id ────────────────────────────────────────────────────
+// ── DELETE /businesses/:id — admin only ───────────────────────────────────────
 
-router.delete("/businesses/:id", async (req, res): Promise<void> => {
+router.delete("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
 
   try {

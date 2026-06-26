@@ -27,6 +27,7 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 import { useLocation } from "wouter";
 import { encodeConfig } from "@/lib/configUrl";
+import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
 import type { BotConfig } from "@workspace/api-client-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ function businessToConfig(b: Business): BotConfig {
 
 function handleSignOut() {
   localStorage.removeItem("botforge_admin_session");
+  clearAdminToken();
   window.location.reload();
 }
 
@@ -229,7 +231,7 @@ function ClientCard({
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/businesses/${business.id}`, { method: "DELETE" });
+      const res = await adminFetch(`/api/businesses/${business.id}`, { method: "DELETE" });
       if (res.ok) onDeleted(business.id);
     } finally {
       setDeleting(false);
@@ -241,7 +243,7 @@ function ClientCard({
     setPromoLoading(true);
     setPromoError(null);
     try {
-      const res = await fetch("/api/promo/generate", {
+      const res = await adminFetch("/api/promo/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -578,7 +580,7 @@ function AddBusinessModal({
     try {
       const url = isEdit ? `/api/businesses/${editBusiness!.id}` : "/api/businesses";
       const method = isEdit ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -828,7 +830,7 @@ function LeadCard({
     setContactedLoading(true);
     const next = !lead.contacted;
     try {
-      const res = await fetch(`/api/leads/${lead.id}/contacted`, {
+      const res = await adminFetch(`/api/leads/${lead.id}/contacted`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contacted: next }),
@@ -1028,7 +1030,7 @@ function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Busi
   function fetchLeads(biz: string) {
     const url = biz !== "all" ? `/api/leads?businessId=${biz}` : "/api/leads";
     setLoading(true);
-    fetch(url)
+    adminFetch(url)
       .then((r) => r.json())
       .then((data) => setLeads(data as Lead[]))
       .catch(() => {})
@@ -1183,7 +1185,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     function refreshLeads() {
-      fetch("/api/leads")
+      adminFetch("/api/leads")
         .then((r) => r.json())
         .then((data) => {
           const leads = data as Lead[];

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
@@ -61,8 +62,8 @@ Rules:
 Return ONLY the caption text. No intro, no label, no explanation — just the caption.`;
 }
 
-/** POST /promo/generate — generate a one-off social media caption for a business */
-router.post("/promo/generate", async (req, res): Promise<void> => {
+/** POST /promo/generate — admin only */
+router.post("/promo/generate", requireAdmin, async (req, res): Promise<void> => {
   const { bizName, bizType, services, location, personality } = req.body as {
     bizName?: string;
     bizType?: string;

@@ -1,7 +1,8 @@
 import { useState, useEffect, type ReactNode } from "react";
+import { saveAdminToken, clearAdminToken } from "@/lib/adminFetch";
 
 const STORAGE_KEY = "botforge_admin_session";
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 function isSessionValid(): boolean {
   try {
@@ -31,7 +32,10 @@ export default function AdminGate({ children }: Props) {
   useEffect(() => {
     if (authed) return;
     const id = setInterval(() => {
-      if (!isSessionValid()) setAuthed(false);
+      if (!isSessionValid()) {
+        clearAdminToken();
+        setAuthed(false);
+      }
     }, 60_000);
     return () => clearInterval(id);
   }, [authed]);
@@ -47,6 +51,8 @@ export default function AdminGate({ children }: Props) {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
+        const data = (await res.json()) as { ok: boolean; token: string };
+        saveAdminToken(data.token);
         saveSession();
         setAuthed(true);
       } else {

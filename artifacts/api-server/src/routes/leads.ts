@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { Pool } from "pg";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../middlewares/requireAdmin";
 import type { Lead } from "../types/lead";
 
 const router: IRouter = Router();
@@ -27,7 +28,7 @@ function rowToLead(row: Record<string, unknown>): Lead {
   };
 }
 
-// ── POST /leads ───────────────────────────────────────────────────────────────
+// ── POST /leads — public (chatbot WhatsApp handoff posts leads here) ──────────
 
 router.post("/leads", async (req, res): Promise<void> => {
   const lead = req.body as Partial<Lead>;
@@ -64,9 +65,9 @@ router.post("/leads", async (req, res): Promise<void> => {
   }
 });
 
-// ── GET /leads ────────────────────────────────────────────────────────────────
+// ── GET /leads — admin only ───────────────────────────────────────────────────
 
-router.get("/leads", async (req, res): Promise<void> => {
+router.get("/leads", requireAdmin, async (req, res): Promise<void> => {
   const { businessId } = req.query as { businessId?: string };
 
   try {
@@ -84,9 +85,9 @@ router.get("/leads", async (req, res): Promise<void> => {
   }
 });
 
-// ── PATCH /leads/:id/contacted ────────────────────────────────────────────────
+// ── PATCH /leads/:id/contacted — admin only ───────────────────────────────────
 
-router.patch("/leads/:id/contacted", async (req, res): Promise<void> => {
+router.patch("/leads/:id/contacted", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const { contacted } = req.body as { contacted?: boolean };
 

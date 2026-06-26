@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
+import { generateToken } from "../lib/adminToken";
 
 const router: IRouter = Router();
 
@@ -7,7 +8,7 @@ if (!process.env.BOTFORGE_CEO_PASSWORD) {
   logger.warn("BOTFORGE_CEO_PASSWORD is not set — /auth/admin-login will always reject");
 }
 
-/** POST /auth/admin-login — validate admin password */
+/** POST /auth/admin-login — validate admin password, return a signed token */
 router.post("/auth/admin-login", (req, res): void => {
   const { password } = req.body as { password?: string };
 
@@ -28,7 +29,9 @@ router.post("/auth/admin-login", (req, res): void => {
     return;
   }
 
-  res.json({ ok: true });
+  const token = generateToken();
+  logger.info("Admin login successful — token issued");
+  res.json({ ok: true, token });
 });
 
 export default router;
