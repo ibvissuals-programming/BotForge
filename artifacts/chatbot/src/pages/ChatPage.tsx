@@ -9,6 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DEVELOPER_WHATSAPP_URL = "https://wa.me/2348056683398";
+
+// ── Local types ───────────────────────────────────────────────────────────────
+
+// Extends the generated ChatMessage with a creation timestamp so each message
+// stores the time it was actually created rather than reading new Date() at
+// render time (which drifts on every re-render).
+// sentAt is optional so older in-memory messages without it render gracefully.
+type LocalChatMessage = ChatMessage & { sentAt?: string };
+
 const BOOKING_KEYWORDS =
   /\b(book|booking|bookings|appointment|appointments|schedule|scheduled|reserve|reservation|connect|contact|reach|whatsapp|link|number)\b/i;
 const FREE_MSG_LIMIT = 5;
@@ -261,7 +270,7 @@ export default function ChatPage() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [businessId, setBusinessId] = useState("");
   const [bizPhone, setBizPhone] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<LocalChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [accessTier, setAccessTier] = useState<AccessTier>("free");
@@ -392,7 +401,7 @@ export default function ChatPage() {
     sentCountRef.current += 1;
     setSentCount(sentCountRef.current);
 
-    const userMsg: ChatMessage = { role: "user", content: text };
+    const userMsg: LocalChatMessage = { role: "user", content: text, sentAt: new Date().toISOString() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -401,12 +410,12 @@ export default function ChatPage() {
       { data: { messages: newMessages, config } },
       {
         onSuccess: (data) => {
-          setMessages([...newMessages, { role: "assistant", content: data.content }]);
+          setMessages([...newMessages, { role: "assistant", content: data.content, sentAt: new Date().toISOString() }]);
         },
         onError: () => {
           setMessages([
             ...newMessages,
-            { role: "assistant", content: "Sorry, I had trouble connecting. Please try again." },
+            { role: "assistant", content: "Sorry, I had trouble connecting. Please try again.", sentAt: new Date().toISOString() },
           ]);
         },
       },
@@ -709,7 +718,7 @@ export default function ChatPage() {
                 {msg.content}
               </div>
               <span className="text-[10px] text-muted-foreground mt-1 px-1 font-medium opacity-70">
-                {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {(msg.sentAt ? new Date(msg.sentAt) : new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
               {msg.role === "assistant" && mentionsBooking(msg.content) && (
                 <div className="mt-2 mb-1">
