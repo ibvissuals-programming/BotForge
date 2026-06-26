@@ -1,16 +1,9 @@
 import { Router, type IRouter } from "express";
-import { Pool } from "pg";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { pool } from "../lib/db";
 
 const router: IRouter = Router();
-
-function dbUrlWithTimeout(url: string | undefined, secs = 15): string | undefined {
-  if (!url) return url;
-  return url.includes("?") ? `${url}&connect_timeout=${secs}` : `${url}?connect_timeout=${secs}`;
-}
-
-const pool = new Pool({ connectionString: dbUrlWithTimeout(process.env.DATABASE_URL) });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
