@@ -69,6 +69,53 @@ const BIZ_TYPE_LABELS: Record<string, string> = {
   other: "Business",
 };
 
+// ── Service block parser ──────────────────────────────────────────────────────
+//
+// Classifies each non-empty line of config.services into one of four kinds:
+//
+//   "tagline"  starts with "Tagline:" — rendered as italic subtitle in header
+//   "heading"  ALL-CAPS-heavy or ends with colon — rendered as section label
+//   "priced"   "Name — ₦Price" pattern — rendered as a service card
+//   "info"     everything else — rendered as a plain prose paragraph
+//
+// Fully generic. No business-type-specific logic anywhere.
+
+type ServiceLine =
+  | { kind: "tagline"; text: string }
+  | { kind: "heading"; text: string }
+  | { kind: "priced"; name: string; price: string }
+  | { kind: "info"; text: string };
+
+function parseServicesBlock(raw: string): ServiceLine[] {
+  return raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line): ServiceLine => {
+      if (/^tagline:\s*/i.test(line)) {
+        return { kind: "tagline", text: line.replace(/^tagline:\s*/i, "").trim() };
+      }
+
+      const dashMatch = line.match(/^(.+?)\s*[—–]\s*(.+)$/);
+      if (dashMatch) {
+        const [, name, price] = dashMatch;
+        if (/[₦\d]/.test(price)) {
+          return { kind: "priced", name: name.trim(), price: price.trim() };
+        }
+      }
+
+      const letters = (line.match(/[a-zA-Z]/g) ?? []).length;
+      const uppers = (line.match(/[A-Z]/g) ?? []).length;
+      const isAllCapsHeavy = letters > 3 && uppers / letters > 0.6;
+      const endsWithColon = line.endsWith(":");
+      if ((isAllCapsHeavy || endsWithColon) && line.length < 80) {
+        return { kind: "heading", text: endsWithColon ? line.slice(0, -1) : line };
+      }
+
+      return { kind: "info", text: line };
+    });
+}
+
 // ── WhatsApp Handoff Button ───────────────────────────────────────────────────
 //
 // Data flow:
@@ -375,6 +422,12 @@ export default function ChatPage() {
   const accentColor = config.accentColor ?? "#b5517a";
   const accentHsl = hexToHsl(accentColor);
 
+  const parsedLines = config.services ? parseServicesBlock(config.services) : [];
+  const serviceTagline = parsedLines.find((l): l is { kind: "tagline"; text: string } => l.kind === "tagline");
+  const serviceSections = parsedLines.filter((l) => l.kind === "heading" || l.kind === "priced");
+  const pricedItems = parsedLines.filter((l): l is { kind: "priced"; name: string; price: string } => l.kind === "priced");
+  const infoItems = parsedLines.filter((l): l is { kind: "info"; text: string } => l.kind === "info");
+
   return (
     <div className="flex justify-center bg-black dark">
       {accentHsl && <style>{`:root { --primary: ${accentHsl}; }`}</style>}
@@ -391,19 +444,27 @@ export default function ChatPage() {
             ⚡ Powered by BotForge
           </a>
 
-          {/* Hero row: emoji icon + name + badge + location */}
-          <div className="flex items-start gap-4 mb-7">
+          {/* Business Header */}
+          <div className="flex items-start gap-4 mb-5">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
               style={{ background: `${accentColor}18`, border: `1px solid ${accentColor}33` }}
             >
               {BIZ_EMOJIS[config.bizType || "other"]}
             </div>
-            <div className="min-w-0">
-              <h1 className="font-syne font-bold text-[22px] leading-tight text-foreground truncate">
+            <div className="flex-1 min-w-0">
+              <h1
+                className={`font-syne font-bold leading-tight text-foreground break-words pr-14 ${
+                  config.bizName.length > 28
+                    ? "text-[16px]"
+                    : config.bizName.length > 20
+                    ? "text-[19px]"
+                    : "text-[22px]"
+                }`}
+              >
                 {config.bizName}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-2">
                 <span
                   className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize"
                   style={{ background: `${accentColor}18`, color: accentColor }}
@@ -411,19 +472,23 @@ export default function ChatPage() {
                   {BIZ_TYPE_LABELS[config.bizType || "other"] ?? config.bizType}
                 </span>
                 {config.location && (
-                  <span className="text-[12px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground leading-snug">
                     📍 {config.location}
                   </span>
                 )}
               </div>
-              <p className="text-[12px] text-muted-foreground mt-2 leading-snug">
-                Quality wig care, prices that don't break the bank 💕
-              </p>
             </div>
           </div>
 
-          {/* Services & Pricing */}
-          {config.services && (
+          {/* Business Description — tagline from services block, if present */}
+          {serviceTagline && (
+            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6 italic border-l-2 pl-3" style={{ borderColor: `${accentColor}55` }}>
+              {serviceTagline.text}
+            </p>
+          )}
+
+          {/* Services & Pricing — priced items only, headings as inline labels */}
+          {pricedItems.length > 0 && (
             <div className="mb-6">
               <h2
                 className="text-[11px] font-semibold tracking-widest uppercase mb-3"
@@ -431,31 +496,55 @@ export default function ChatPage() {
               >
                 Services &amp; Pricing
               </h2>
-              <div className="flex flex-col gap-2">
-                {config.services
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((line, i) => {
-                    const dashIdx = line.search(/[—–]/);
-                    const name = dashIdx > 0 ? line.slice(0, dashIdx).trim() : line.trim();
-                    const price = dashIdx > 0 ? line.slice(dashIdx + 1).trim() : null;
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-card border border-border"
+              <div className="flex flex-col gap-1.5">
+                {serviceSections.map((item, i) =>
+                  item.kind === "heading" ? (
+                    <p
+                      key={i}
+                      className="text-[10px] font-semibold tracking-wider uppercase mt-4 mb-0.5 first:mt-0 px-1"
+                      style={{ color: `${accentColor}99` }}
+                    >
+                      {item.text}
+                    </p>
+                  ) : item.kind === "priced" ? (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-card border border-border"
+                    >
+                      <span className="text-[13px] text-foreground leading-snug">{item.name}</span>
+                      <span
+                        className="text-[13px] font-semibold ml-3 flex-shrink-0"
+                        style={{ color: accentColor }}
                       >
-                        <span className="text-[13px] text-foreground">{name}</span>
-                        {price && (
-                          <span
-                            className="text-[13px] font-semibold ml-3 flex-shrink-0"
-                            style={{ color: accentColor }}
-                          >
-                            {price}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                        {item.price}
+                      </span>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Business Information — ordering instructions + informational paragraphs */}
+          {(config.howToOrder || infoItems.length > 0) && (
+            <div className="mb-6">
+              <h2
+                className="text-[11px] font-semibold tracking-widest uppercase mb-3"
+                style={{ color: accentColor }}
+              >
+                Business Information
+              </h2>
+              <div className="flex flex-col gap-3">
+                {config.howToOrder && (
+                  <p className="text-[13px] text-foreground/85 leading-relaxed">
+                    🛒 {config.howToOrder}
+                  </p>
+                )}
+                {infoItems.map((item, i) => (
+                  <p key={i} className="text-[13px] text-muted-foreground leading-relaxed">
+                    {item.text}
+                  </p>
+                ))}
               </div>
             </div>
           )}
