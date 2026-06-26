@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
-import { buildShareableUrl, hexToHsl } from "@/lib/configUrl";
+import { buildShareableUrl, hexToHsl, getConfigFromUrl, decodeConfig } from "@/lib/configUrl";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -249,8 +249,21 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, [accessTier]);
 
-  // Load business config from the API (database-backed, single source of truth)
+  // Load business config.
+  //
+  // Priority order:
+  //   1. URL hash  /#c=<encoded>  — shareable links, QR codes, WhatsApp intro
+  //   2. Query string  ?c=<encoded>  — admin "Open Bot" button (wouter setLocation)
+  //   3. API list[0] fallback — bare URL with no config (default landing page)
+  //
+  // The API is always fetched regardless so we can resolve the businessId
+  // (needed for lead tracking) by matching bizName against the DB list.
   useEffect(() => {
+    const hashConfig = getConfigFromUrl();
+    const searchC = new URLSearchParams(window.location.search).get("c");
+    const queryConfig = searchC ? decodeConfig(searchC) : null;
+    const urlConfig = hashConfig ?? queryConfig;
+
     fetch("/api/businesses")
       .then((res) => {
         if (!res.ok) throw new Error(`API ${res.status}`);
@@ -269,6 +282,13 @@ export default function ChatPage() {
         }>>;
       })
       .then((list) => {
+        if (urlConfig) {
+          const match = list.find((b) => b.bizName === urlConfig.bizName);
+          setBusinessId(match?.id ?? "");
+          setBizPhone(urlConfig.phone ?? match?.phone ?? "2348163716199");
+          setConfig(urlConfig);
+          return;
+        }
         const biz = list[0];
         if (!biz) return;
         setBusinessId(biz.id);
