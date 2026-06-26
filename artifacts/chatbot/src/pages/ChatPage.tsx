@@ -316,8 +316,8 @@ export default function ChatPage() {
   // Load business config.
   //
   // Priority order:
-  //   1. URL hash  /#c=<encoded>  — shareable links, QR codes, WhatsApp intro
-  //   2. Query string  ?c=<encoded>  — admin "Open Bot" button (wouter setLocation)
+  //   1. URL hash  /#c=<encoded>  — shareable links, QR codes, admin "Open Bot"
+  //   2. Query string  ?c=<encoded>  — backward-compat with legacy links only
   //   3. API list[0] fallback — bare URL with no config (default landing page)
   //
   // The API is always fetched regardless so we can resolve the businessId

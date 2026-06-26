@@ -25,8 +25,7 @@ import {
   Search,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { useLocation } from "wouter";
-import { encodeConfig } from "@/lib/configUrl";
+import { buildShareableUrl } from "@/lib/configUrl";
 import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
 import type { BotConfig } from "@workspace/api-client-react";
 
@@ -204,7 +203,6 @@ function ClientCard({
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [, setLocation] = useLocation();
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoCaption, setPromoCaption] = useState<string | null>(null);
   const [promoCopied, setPromoCopied] = useState(false);
@@ -214,7 +212,7 @@ function ClientCard({
 
   const accent = business.accentColor ?? "#7c6af7";
 
-  const chatUrl = `${window.location.origin}/#c=${encodeConfig(businessToConfig(business))}`;
+  const chatUrl = buildShareableUrl(businessToConfig(business));
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(chatUrl).then(() => {
@@ -224,9 +222,8 @@ function ClientCard({
   }, [chatUrl]);
 
   const handleOpenBot = useCallback(() => {
-    const cfg = businessToConfig(business);
-    setLocation(`/?c=${encodeConfig(cfg)}`);
-  }, [business, setLocation]);
+    window.location.href = chatUrl;
+  }, [chatUrl]);
 
   async function handleDelete() {
     setDeleting(true);
