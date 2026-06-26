@@ -121,18 +121,13 @@ router.post("/chat/send", async (req, res): Promise<void> => {
 
 /** POST /chat/summarize — generate lead summary + prefilled WhatsApp message */
 router.post("/chat/summarize", async (req, res): Promise<void> => {
-  const {
-    messages,
-    config,
-  } = req.body as {
-    messages: Array<{ role: string; content: string }>;
-    config: { bizName: string; bizType?: string };
-  };
-
-  if (!Array.isArray(messages) || !config?.bizName) {
-    res.status(400).json({ error: "messages array and config.bizName are required" });
+  const parsed = SendChatMessageBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
     return;
   }
+
+  const { messages, config } = parsed.data;
 
   if (!process.env.GROQ_API_KEY) {
     res.status(500).json({ error: "GROQ_API_KEY is not configured on the server." });
