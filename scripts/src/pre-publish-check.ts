@@ -26,6 +26,23 @@ async function check(name: string, fn: () => Promise<string>): Promise<CheckResu
   }
 }
 
+/**
+ * Log in with BOTFORGE_CEO_PASSWORD and return the signed admin token
+ * from the JSON response body.  The token must be sent as the
+ * X-Admin-Token header on every protected request (C1 auth architecture).
+ */
+async function login(): Promise<string> {
+  const res = await fetch(`${API}/api/auth/admin-login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  if (!res.ok) throw new Error(`Login failed — HTTP ${res.status}`);
+  const body = (await res.json()) as { ok: boolean; token: string };
+  if (!body.ok || !body.token) throw new Error(`Login response missing token: ${JSON.stringify(body)}`);
+  return body.token;
+}
+
 async function run() {
   console.log("\n  BotForge — Pre-Publish Smoke Test");
   console.log("  ──────────────────────────────────\n");
@@ -63,16 +80,9 @@ async function run() {
 
   // ── 4. Businesses endpoint (authenticated) ────────────────────────────────
   results.push(await check("GET /api/businesses — returns valid array", async () => {
-    // Login to get session cookie
-    const loginRes = await fetch(`${API}/api/auth/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: PASSWORD }),
-    });
-    const cookie = loginRes.headers.get("set-cookie") ?? "";
-
+    const token = await login();
     const res = await fetch(`${API}/api/businesses`, {
-      headers: cookie ? { Cookie: cookie } : {},
+      headers: { "X-Admin-Token": token },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
@@ -82,15 +92,9 @@ async function run() {
 
   // ── 5. Leads endpoint (authenticated) ─────────────────────────────────────
   results.push(await check("GET /api/leads — returns valid array", async () => {
-    const loginRes = await fetch(`${API}/api/auth/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: PASSWORD }),
-    });
-    const cookie = loginRes.headers.get("set-cookie") ?? "";
-
+    const token = await login();
     const res = await fetch(`${API}/api/leads`, {
-      headers: cookie ? { Cookie: cookie } : {},
+      headers: { "X-Admin-Token": token },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
@@ -98,24 +102,26 @@ async function run() {
     return `${body.length} lead${body.length === 1 ? "" : "s"} found`;
   }));
 
-  // ── 6. Customer-facing chatbot ────────────────────────────────────────────
+  // ── 6. Protected routes reject unauthenticated requests ───────────────────
+  results.push(await check("GET /api/leads (no token) — returns 401", async () => {
+    const res = await fetch(`${API}/api/leads`);
+    if (res.status !== 401) throw new Error(`Expected 401, got HTTP ${res.status}`);
+    return "HTTP 401 as expected";
+  }));
+
+  // ── 7. Customer-facing chatbot ────────────────────────────────────────────
   results.push(await check("GET localhost:3000 — chatbot serves + Fortune config in API", async () => {
-    // 6a: chatbot app shell
+    // 7a: chatbot app shell
     const chatbotRes = await fetch("http://localhost:3000/");
     if (!chatbotRes.ok) throw new Error(`Chatbot HTTP ${chatbotRes.status} (is the chatbot workflow running?)`);
     const html = await chatbotRes.text();
     if (!html.includes("BotForge")) throw new Error('HTML missing "BotForge" — wrong app or build broken');
     if (!html.includes('id="root"')) throw new Error('HTML missing id="root" — SPA mount point absent');
 
-    // 6b: Fortune's business config present in API (this is what the chatbot loads at runtime)
-    const loginRes = await fetch(`${API}/api/auth/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: PASSWORD }),
-    });
-    const cookie = loginRes.headers.get("set-cookie") ?? "";
+    // 7b: Fortune's business config present in API (this is what the chatbot loads at runtime)
+    const token = await login();
     const bizRes = await fetch(`${API}/api/businesses`, {
-      headers: cookie ? { Cookie: cookie } : {},
+      headers: { "X-Admin-Token": token },
     });
     if (!bizRes.ok) throw new Error(`Businesses API HTTP ${bizRes.status}`);
     const businesses = (await bizRes.json()) as Array<{ bizName: string }>;
