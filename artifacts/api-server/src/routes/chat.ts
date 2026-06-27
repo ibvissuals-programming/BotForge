@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
-import { groqComplete } from "../lib/groq";
+import { groqComplete, GroqRateLimitError } from "../lib/groq";
 import type { Lead, BookingIntent } from "../types/lead";
 
 const router: IRouter = Router();
@@ -80,6 +80,13 @@ router.post("/chat/send", async (req, res): Promise<void> => {
       content: content || "Sorry, I could not process that. Please try again.",
     });
   } catch (err) {
+    if (err instanceof GroqRateLimitError) {
+      req.log.warn({ err }, "Groq rate limit hit on /chat/send");
+      res.json({
+        content: "We're getting a lot of messages right now — please try again in a moment 🙏",
+      });
+      return;
+    }
     req.log.error({ err }, "Groq API error");
     const message = err instanceof Error ? err.message : "Unknown error";
     res.status(500).json({ error: `AI service error: ${message}` });

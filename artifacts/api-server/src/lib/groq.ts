@@ -13,10 +13,18 @@ export interface GroqOptions {
   jsonMode?: boolean;
 }
 
+/** Thrown when Groq responds with HTTP 429 (rate limit exceeded). */
+export class GroqRateLimitError extends Error {
+  constructor(body: string) {
+    super(`Groq rate limit exceeded: ${body}`);
+    this.name = "GroqRateLimitError";
+  }
+}
+
 /**
  * Send a chat-completion request to Groq and return the assistant's reply text.
  *
- * Throws on non-2xx responses so callers can handle errors uniformly.
+ * Throws GroqRateLimitError on 429, generic Error on other non-2xx responses.
  */
 export async function groqComplete(
   messages: object[],
@@ -38,6 +46,11 @@ export async function groqComplete(
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),
   });
+
+  if (response.status === 429) {
+    const errText = await response.text();
+    throw new GroqRateLimitError(errText);
+  }
 
   if (!response.ok) {
     const errText = await response.text();
