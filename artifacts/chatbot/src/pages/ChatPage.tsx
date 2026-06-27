@@ -3,6 +3,7 @@ import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { buildShareableUrl, hexToHsl, getConfigFromUrl, decodeConfig } from "@/lib/configUrl";
 import { BIZ_EMOJIS, BIZ_TYPE_LABELS, type BookingIntent } from "@/lib/bizTypes";
+import type { Lead } from "@/lib/types";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,20 +31,6 @@ function mentionsBooking(text: string): boolean {
 }
 
 type AccessTier = "free" | "trial-ended" | "demo" | "demo-ended";
-
-// ── Lead type (frontend mirror of backend Lead) ───────────────────────────────
-
-interface Lead {
-  id: string;
-  businessId: string;
-  timestamp: string;
-  customerName: string | null;
-  servicesInterested: string[];
-  bookingIntent: BookingIntent;
-  questionsAsked: string[];
-  conversationLength: number;
-  summaryText: string;
-}
 
 // ── UI maps ──────────────────────────────────────────────────────────────────
 
