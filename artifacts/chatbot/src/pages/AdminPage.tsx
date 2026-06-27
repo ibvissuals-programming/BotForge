@@ -361,6 +361,14 @@ function ClientCard({
             QR
           </button>
           <button
+            onClick={() => window.open(chatUrl, "_blank")}
+            title="Test bot in new tab"
+            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl border border-[#2a2a2a] bg-[#1f1f1f] text-[#888] hover:text-[#f0f0f0] hover:border-[#3a3a3a] transition-all"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Test Bot
+          </button>
+          <button
             onClick={handleOpenBot}
             className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl text-white transition-all flex-1 justify-center"
             style={{ background: accent }}
