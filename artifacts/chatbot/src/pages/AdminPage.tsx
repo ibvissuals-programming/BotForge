@@ -28,6 +28,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { buildShareableUrl } from "@/lib/configUrl";
 import { BIZ_EMOJIS, BIZ_TYPE_OPTIONS, type BookingIntent } from "@/lib/bizTypes";
 import type { Business, Lead } from "@/lib/types";
+import { exportLeadsToCSV } from "@/lib/csvExport";
 import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
 import type { BotConfig } from "@workspace/api-client-react";
 
@@ -917,47 +918,6 @@ function LeadCard({
       )}
     </div>
   );
-}
-
-// ── CSV Export ────────────────────────────────────────────────────────────────
-
-function csvEscape(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
-}
-
-function exportLeadsToCSV(leads: Lead[], bizMap: Record<string, Business | undefined>): void {
-  const headers = [
-    "Business Name",
-    "Date",
-    "Customer Name",
-    "Services Interested",
-    "Booking Intent",
-    "Questions Asked",
-    "Contacted",
-  ];
-
-  const rows = leads.map((lead) => [
-    csvEscape(bizMap[lead.businessId]?.bizName ?? lead.businessId),
-    csvEscape(new Date(lead.timestamp).toLocaleString()),
-    csvEscape(lead.customerName ?? ""),
-    csvEscape(lead.servicesInterested.join("; ")),
-    csvEscape(lead.bookingIntent),
-    csvEscape(lead.questionsAsked.join("; ")),
-    csvEscape(lead.contacted ? "Yes" : "No"),
-  ]);
-
-  const csv = [headers.map(csvEscape), ...rows]
-    .map((row) => row.join(","))
-    .join("\n");
-
-  const today = new Date().toISOString().slice(0, 10);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `botforge-leads-${today}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Business[]; initialFilterBiz?: string }) {
