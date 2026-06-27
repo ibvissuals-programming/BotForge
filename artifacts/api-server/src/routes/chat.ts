@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
+import { randomUUID } from "node:crypto";
 import { SendChatMessageBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { groqComplete, GroqRateLimitError } from "../lib/groq";
+import { pool } from "../lib/db";
 import type { Lead, BookingIntent } from "../types/lead";
 
 const router: IRouter = Router();
@@ -192,6 +194,25 @@ Rules:
       req.log.error({ err }, "Summarize API error — using fallback");
     }
     res.json(fallbackLead);
+  }
+});
+
+/** POST /chat/ping — fire-and-forget message event counter (no content stored) */
+router.post("/chat/ping", async (req, res): Promise<void> => {
+  const { businessId } = req.body as { businessId?: unknown };
+  if (typeof businessId !== "string" || !businessId.trim()) {
+    res.status(400).json({ error: "businessId is required" });
+    return;
+  }
+  try {
+    await pool.query(
+      "INSERT INTO message_events (id, business_id) VALUES ($1, $2)",
+      [randomUUID(), businessId.trim()],
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.warn({ err }, "chat/ping: failed to record message event");
+    res.status(500).json({ error: "Failed to record event" });
   }
 });
 

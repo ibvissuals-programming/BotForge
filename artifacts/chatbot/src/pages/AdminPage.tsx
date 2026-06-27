@@ -142,6 +142,8 @@ function ClientCard({
   leadCount,
   lastLeadAt,
   onViewLeads,
+  weeklyMessages,
+  weeklyLeads,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
@@ -149,6 +151,8 @@ function ClientCard({
   leadCount: number;
   lastLeadAt: Date | null;
   onViewLeads: () => void;
+  weeklyMessages: number;
+  weeklyLeads: number;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -311,7 +315,19 @@ function ClientCard({
             {business.instagram}
           </p>
         )}
-        {!business.location && !business.instagram && <div className="mb-3" />}
+        {!business.location && !business.instagram && <div className="mb-1" />}
+
+        <p className="text-[12px] text-[#555] mb-2 flex items-center gap-1.5">
+          <MessageSquare className="w-3 h-3 shrink-0" />
+          <span>
+            <span className="text-[#888] font-medium">{weeklyMessages}</span>
+            {" "}{weeklyMessages === 1 ? "message" : "messages"}
+            {" · "}
+            <span className="text-[#888] font-medium">{weeklyLeads}</span>
+            {" "}{weeklyLeads === 1 ? "lead" : "leads"}
+            {" this week"}
+          </span>
+        </p>
 
         <div className="flex gap-2">
           <button
@@ -1151,6 +1167,7 @@ export default function AdminPage() {
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [leadsJumpBiz, setLeadsJumpBiz] = useState<string | undefined>(undefined);
+  const [weeklyStats, setWeeklyStats] = useState<Record<string, { messages: number; leads: number }>>({});
 
   const filteredBusinesses = clientSearch.trim()
     ? businesses.filter((b) =>
@@ -1179,6 +1196,18 @@ export default function AdminPage() {
     }
     refreshLeads();
     const id = setInterval(refreshLeads, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    function refreshStats() {
+      adminFetch("/api/stats/weekly")
+        .then((r) => r.json())
+        .then((data) => setWeeklyStats(data as Record<string, { messages: number; leads: number }>))
+        .catch(() => {});
+    }
+    refreshStats();
+    const id = setInterval(refreshStats, 30_000);
     return () => clearInterval(id);
   }, []);
 
@@ -1365,6 +1394,8 @@ export default function AdminPage() {
                     return new Date(Math.max(...bLeads.map((l) => new Date(l.timestamp).getTime())));
                   })()}
                   onViewLeads={() => handleViewLeads(b.id)}
+                  weeklyMessages={weeklyStats[b.id]?.messages ?? 0}
+                  weeklyLeads={weeklyStats[b.id]?.leads ?? 0}
                 />
               ))
             )}

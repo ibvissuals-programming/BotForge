@@ -37,6 +37,12 @@ const SCHEMA_SQL = `
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE;
   -- idempotent: track old slugs so renamed businesses keep working at their old URL
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS previous_slugs TEXT[] NOT NULL DEFAULT '{}';
+  -- idempotent: lightweight message event log — one row per AI reply, no content stored
+  CREATE TABLE IF NOT EXISTS message_events (
+    id          TEXT        PRIMARY KEY,
+    business_id TEXT        NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    sent_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────

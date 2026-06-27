@@ -363,6 +363,13 @@ export default function ChatPage() {
       {
         onSuccess: (data) => {
           setMessages([...newMessages, { role: "assistant", content: data.content, sentAt: new Date().toISOString() }]);
+          if (businessId) {
+            fetch("/api/chat/ping", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ businessId }),
+            }).catch(() => {});
+          }
         },
         onError: () => {
           setMessages([
