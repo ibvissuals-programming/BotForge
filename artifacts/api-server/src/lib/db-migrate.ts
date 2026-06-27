@@ -44,7 +44,8 @@ const SCHEMA_SQL = `
 const SEED_BUSINESSES = [
   {
     id: "styled-by-fortune",
-    slug: "fortune",
+    slug: "styledbyfortune",
+    previousSlugs: ["fortune"],
     bizName: "Styled By Fortune",
     bizType: "wig",
     phone: "2348163716199",
@@ -67,7 +68,8 @@ const SEED_BUSINESSES = [
   },
   {
     id: "rossy-cakes-events-management",
-    slug: "rossy",
+    slug: "rossyevents",
+    previousSlugs: ["rossy"],
     bizName: "Rossy Cakes & Events Management",
     bizType: "cake",
     phone: "2348066539706",
@@ -139,8 +141,8 @@ export async function runMigrations(): Promise<void> {
       const result = await client.query(
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
-            instagram, personality, welcome_msg, accent_color, slug)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            instagram, personality, welcome_msg, accent_color, slug, previous_slugs)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -155,6 +157,7 @@ export async function runMigrations(): Promise<void> {
           biz.welcomeMsg,
           biz.accentColor,
           biz.slug,
+          biz.previousSlugs ?? [],
         ]
       );
       if ((result.rowCount ?? 0) > 0) {
@@ -174,8 +177,8 @@ export async function runMigrations(): Promise<void> {
       await client.query(`
         UPDATE businesses
         SET slug = CASE
-          WHEN id = 'styled-by-fortune'              THEN 'fortune'
-          WHEN id = 'rossy-cakes-events-management'  THEN 'rossy'
+          WHEN id = 'styled-by-fortune'              THEN 'styledbyfortune'
+          WHEN id = 'rossy-cakes-events-management'  THEN 'rossyevents'
           ELSE lower(regexp_replace(split_part(biz_name, ' ', 1), '[^a-z0-9]', '', 'g'))
         END
         WHERE slug IS NULL
