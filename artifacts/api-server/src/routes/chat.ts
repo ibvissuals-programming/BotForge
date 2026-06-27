@@ -186,7 +186,11 @@ Rules:
 
     res.json(leadData);
   } catch (err) {
-    req.log.error({ err }, "Summarize API error — using fallback");
+    if (err instanceof GroqRateLimitError) {
+      req.log.warn({ err }, "Groq rate limit hit on /chat/summarize — using fallback lead");
+    } else {
+      req.log.error({ err }, "Summarize API error — using fallback");
+    }
     res.json(fallbackLead);
   }
 });
