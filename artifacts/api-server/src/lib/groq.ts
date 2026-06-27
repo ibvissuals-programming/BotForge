@@ -1,7 +1,7 @@
 import { logger } from "./logger";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.1-8b-instant";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 if (!process.env.GROQ_API_KEY) {
   logger.warn("GROQ_API_KEY is not set — Groq endpoints will fail at runtime");
