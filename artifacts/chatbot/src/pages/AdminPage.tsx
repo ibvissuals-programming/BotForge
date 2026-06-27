@@ -901,7 +901,7 @@ function LeadCard({
   }
 
   return (
-    <div className={`rounded-2xl bg-[#111] border transition-colors ${lead.contacted ? "border-green-500/20" : "border-[#1f1f1f]"}`}>
+    <div className={`rounded-2xl bg-[#111] border transition-colors ${lead.contacted ? "border-green-500/20" : "border-amber-500/25"}`}>
       {/* ── Collapsed header — always visible ── */}
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -1043,7 +1043,11 @@ function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Busi
   const searchTerm = leadSearch.trim().toLowerCase();
   const displayedLeads = leads
     .filter((l) => (pendingOnly ? !l.contacted : true))
-    .filter((l) => searchTerm ? (l.customerName?.toLowerCase().includes(searchTerm) ?? false) : true);
+    .filter((l) => searchTerm ? (l.customerName?.toLowerCase().includes(searchTerm) ?? false) : true)
+    .sort((a, b) => {
+      if (a.contacted !== b.contacted) return a.contacted ? 1 : -1;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
 
   function fetchLeads(biz: string) {
     const url = biz !== "all" ? `/api/leads?businessId=${biz}` : "/api/leads";
@@ -1194,6 +1198,8 @@ export default function AdminPage() {
         b.bizName.toLowerCase().includes(clientSearch.trim().toLowerCase())
       )
     : businesses;
+
+  const pendingCount = allLeads.filter((l) => !l.contacted).length;
 
   useEffect(() => {
     fetch("/api/businesses")
@@ -1392,9 +1398,9 @@ export default function AdminPage() {
           >
             <Inbox className="w-3.5 h-3.5" />
             Leads
-            {newLeadsCount > 0 && (
-              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 leading-none">
-                {newLeadsCount > 99 ? "99+" : newLeadsCount}
+            {pendingCount > 0 && (
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold px-1 leading-none">
+                {pendingCount > 99 ? "99+" : pendingCount}
               </span>
             )}
           </button>
