@@ -23,6 +23,10 @@ export function buildShareableUrl(cfg: BotConfig): string {
   return `${window.location.origin}${window.location.pathname.replace(/\/admin\/?$/, "")}#c=${encodeConfig(cfg)}`;
 }
 
+export function buildSlugUrl(slug: string): string {
+  return `${window.location.origin}/${slug}`;
+}
+
 export function hexToHsl(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;

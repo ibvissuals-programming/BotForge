@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Link, Check, ChevronDown } from "lucide-react";
 import { useSendChatMessage, type BotConfig, type ChatMessage } from "@workspace/api-client-react";
 import { buildShareableUrl, hexToHsl, getConfigFromUrl, decodeConfig } from "@/lib/configUrl";
+import { useParams } from "wouter";
 import { BIZ_EMOJIS, BIZ_TYPE_LABELS, type BookingIntent } from "@/lib/bizTypes";
 import type { Lead } from "@/lib/types";
 import { parseServicesBlock, type ServiceLine } from "@/lib/parseServices";
@@ -196,9 +197,11 @@ export default function ChatPage() {
   const [accessTier, setAccessTier] = useState<AccessTier>("free");
   const [sentCount, setSentCount] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [slugNotFound, setSlugNotFound] = useState(false);
   const sentCountRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sendMessageMutation = useSendChatMessage();
+  const { slug } = useParams<{ slug?: string }>();
 
   // Determine access tier from URL and localStorage
   useEffect(() => {
@@ -263,9 +266,11 @@ export default function ChatPage() {
           personality?: string | null;
           welcomeMsg?: string | null;
           accentColor?: string | null;
+          slug?: string | null;
         }>>;
       })
       .then((list) => {
+        // Priority 1: #c= hash or ?c= query config (existing shareable links)
         if (urlConfig) {
           const match = list.find((b) => b.bizName === urlConfig.bizName);
           setBusinessId(match?.id ?? "");
@@ -273,26 +278,33 @@ export default function ChatPage() {
           setConfig(urlConfig);
           return;
         }
-        const biz = list[0];
-        if (!biz) return;
-        setBusinessId(biz.id);
-        setBizPhone(biz.phone ?? "");
-        setConfig({
-          bizName: biz.bizName,
-          bizType: biz.bizType,
-          services: biz.services ?? undefined,
-          location: biz.location ?? undefined,
-          howToOrder: biz.howToOrder ?? undefined,
-          instagram: biz.instagram ?? undefined,
-          personality: biz.personality ?? undefined,
-          welcomeMsg: biz.welcomeMsg ?? undefined,
-          accentColor: biz.accentColor ?? undefined,
-        });
+        // Priority 2: slug route param (e.g. /fortune, /rossy)
+        if (slug) {
+          const biz = list.find((b) => b.slug === slug);
+          if (biz) {
+            setBusinessId(biz.id);
+            setBizPhone(biz.phone ?? "");
+            setConfig({
+              bizName: biz.bizName,
+              bizType: biz.bizType,
+              services: biz.services ?? undefined,
+              location: biz.location ?? undefined,
+              howToOrder: biz.howToOrder ?? undefined,
+              instagram: biz.instagram ?? undefined,
+              personality: biz.personality ?? undefined,
+              welcomeMsg: biz.welcomeMsg ?? undefined,
+              accentColor: biz.accentColor ?? undefined,
+            });
+          } else {
+            setSlugNotFound(true);
+          }
+          return;
+        }
       })
       .catch((err) => {
         console.error("Failed to load business config from API:", err);
       });
-  }, []);
+  }, [slug]);
 
   const isTrialEnded = accessTier === "free" && sentCount >= FREE_MSG_LIMIT;
   const isDemoEnded = accessTier === "demo-ended";
@@ -312,6 +324,21 @@ export default function ChatPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, sendMessageMutation.isPending, isTrialEnded, isDemoEnded]);
+
+  if (slugNotFound) {
+    return (
+      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-6">
+        <div className="text-center max-w-xs">
+          <p className="text-[#f0f0f0] font-semibold text-[16px] mb-2" style={{ fontFamily: "Syne, sans-serif" }}>
+            Chatbot not found
+          </p>
+          <p className="text-[#555] text-[13px] leading-relaxed">
+            The link you followed doesn't match any active business. Check the URL and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSend = (text: string = input) => {
     if (!text.trim() || !config) return;

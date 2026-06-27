@@ -6,18 +6,34 @@ import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/ChatPage";
 import AdminPage from "@/pages/AdminPage";
 import AdminGate from "@/components/AdminGate";
+import { getConfigFromUrl } from "@/lib/configUrl";
 
 const queryClient = new QueryClient();
 
 function Router() {
+  // Preserve existing #c= and ?c= shareable links at the root path.
+  // If either is present, render ChatPage at "/" instead of the admin dashboard.
+  const hasUrlConfig =
+    !!getConfigFromUrl() ||
+    !!new URLSearchParams(window.location.search).get("c");
+
   return (
     <Switch>
-      <Route path="/" component={ChatPage} />
       <Route path="/admin">
         <AdminGate>
           <AdminPage />
         </AdminGate>
       </Route>
+      <Route path="/">
+        {hasUrlConfig ? (
+          <ChatPage />
+        ) : (
+          <AdminGate>
+            <AdminPage />
+          </AdminGate>
+        )}
+      </Route>
+      <Route path="/:slug" component={ChatPage} />
       <Route component={NotFound} />
     </Switch>
   );

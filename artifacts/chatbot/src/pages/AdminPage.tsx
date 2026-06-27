@@ -25,7 +25,7 @@ import {
   Search,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { buildShareableUrl } from "@/lib/configUrl";
+import { buildShareableUrl, buildSlugUrl } from "@/lib/configUrl";
 import { BIZ_EMOJIS, BIZ_TYPE_OPTIONS, type BookingIntent } from "@/lib/bizTypes";
 import type { Business, Lead } from "@/lib/types";
 import { exportLeadsToCSV } from "@/lib/csvExport";
@@ -162,7 +162,9 @@ function ClientCard({
 
   const accent = business.accentColor ?? "#7c6af7";
 
-  const chatUrl = buildShareableUrl(businessToConfig(business));
+  const chatUrl = business.slug
+    ? buildSlugUrl(business.slug)
+    : buildShareableUrl(businessToConfig(business));
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(chatUrl).then(() => {

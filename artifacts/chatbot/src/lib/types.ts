@@ -14,6 +14,7 @@ export interface Business {
   personality?: string | null;
   welcomeMsg?: string | null;
   accentColor?: string | null;
+  slug?: string | null;
 }
 
 // Frontend mirror of the backend Lead type (api-server/src/types/lead.ts).

@@ -19,6 +19,7 @@ export interface Business {
   personality?: string | null;
   welcomeMsg?: string | null;
   accentColor?: string | null;
+  slug?: string | null;
 }
 
 function rowToBusiness(row: Record<string, unknown>): Business {
@@ -34,6 +35,7 @@ function rowToBusiness(row: Record<string, unknown>): Business {
     personality: (row.personality as string | null) ?? null,
     welcomeMsg: (row.welcome_msg as string | null) ?? null,
     accentColor: (row.accent_color as string | null) ?? null,
+    slug: (row.slug as string | null) ?? null,
   };
 }
 
@@ -45,6 +47,13 @@ function slugify(name: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 60);
+}
+
+// Derives a short, human-readable URL slug from the first meaningful word of
+// a business name (e.g. "Rossy Cakes & Events" → "rossy").
+function toShortSlug(name: string): string {
+  const word = name.toLowerCase().trim().split(/\s+/)[0].replace(/[^a-z0-9]/g, "");
+  return word.slice(0, 30) || "business";
 }
 
 // ── GET /businesses — public (ChatPage uses this to load bot config) ──────────
@@ -99,11 +108,32 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
       }
     }
 
+    // Generate a short slug from the first word of the business name.
+    // Handles uniqueness the same way as the id — append a counter suffix.
+    const baseSlug = toShortSlug(bizName);
+    const existingSlugs = await pool.query(
+      "SELECT slug FROM businesses WHERE slug LIKE $1",
+      [`${baseSlug}%`]
+    );
+    let slug = baseSlug;
+    if (existingSlugs.rows.length > 0) {
+      const slugs = new Set(
+        existingSlugs.rows
+          .map((r: Record<string, unknown>) => r.slug as string | null)
+          .filter(Boolean) as string[]
+      );
+      if (slugs.has(slug)) {
+        let n = 2;
+        while (slugs.has(`${baseSlug}${n}`)) n++;
+        slug = `${baseSlug}${n}`;
+      }
+    }
+
     const result = await pool.query(
       `INSERT INTO businesses
          (id, biz_name, biz_type, phone, services, location, how_to_order,
-          instagram, personality, welcome_msg, accent_color)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+          instagram, personality, welcome_msg, accent_color, slug)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING *`,
       [
         id,
@@ -117,6 +147,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
         personality?.trim() || null,
         welcomeMsg?.trim() || null,
         accentColor?.trim() || null,
+        slug,
       ]
     );
 

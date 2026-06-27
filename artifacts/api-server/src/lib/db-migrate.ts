@@ -33,6 +33,8 @@ const SCHEMA_SQL = `
   );
   -- idempotent: add contacted column if upgrading from an older schema
   ALTER TABLE leads ADD COLUMN IF NOT EXISTS contacted BOOLEAN NOT NULL DEFAULT FALSE;
+  -- idempotent: add slug column for clean shareable chatbot URLs
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE;
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
@@ -40,6 +42,7 @@ const SCHEMA_SQL = `
 const SEED_BUSINESSES = [
   {
     id: "styled-by-fortune",
+    slug: "fortune",
     bizName: "Styled By Fortune",
     bizType: "wig",
     phone: "2348163716199",
@@ -62,6 +65,7 @@ const SEED_BUSINESSES = [
   },
   {
     id: "rossy-cakes-events-management",
+    slug: "rossy",
     bizName: "Rossy Cakes & Events Management",
     bizType: "cake",
     phone: "2348066539706",
@@ -133,8 +137,8 @@ export async function runMigrations(): Promise<void> {
       const result = await client.query(
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
-            instagram, personality, welcome_msg, accent_color)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            instagram, personality, welcome_msg, accent_color, slug)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -148,6 +152,7 @@ export async function runMigrations(): Promise<void> {
           biz.personality,
           biz.welcomeMsg,
           biz.accentColor,
+          biz.slug,
         ]
       );
       if ((result.rowCount ?? 0) > 0) {
@@ -157,6 +162,26 @@ export async function runMigrations(): Promise<void> {
       }
     }
     logger.info("DB migration: seed complete ✅");
+
+    // 3. Backfill slugs for any businesses that predate the slug column.
+    //    Uses explicit slugs for the two known seed businesses, and derives
+    //    from the first word of bizName for any others.
+    //    Wrapped in try/catch so a uniqueness conflict on an edge-case
+    //    install doesn't crash the boot sequence.
+    try {
+      await client.query(`
+        UPDATE businesses
+        SET slug = CASE
+          WHEN id = 'styled-by-fortune'              THEN 'fortune'
+          WHEN id = 'rossy-cakes-events-management'  THEN 'rossy'
+          ELSE lower(regexp_replace(split_part(biz_name, ' ', 1), '[^a-z0-9]', '', 'g'))
+        END
+        WHERE slug IS NULL
+      `);
+      logger.info("DB migration: slug backfill complete ✅");
+    } catch (err) {
+      logger.warn({ err }, "DB migration: slug backfill had conflicts — some businesses may have NULL slug");
+    }
   } finally {
     client.release();
     await pool.end();
