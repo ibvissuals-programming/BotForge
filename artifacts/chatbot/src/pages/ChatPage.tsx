@@ -267,6 +267,7 @@ export default function ChatPage() {
           welcomeMsg?: string | null;
           accentColor?: string | null;
           slug?: string | null;
+          previousSlugs?: string[];
         }>>;
       })
       .then((list) => {
@@ -279,8 +280,12 @@ export default function ChatPage() {
           return;
         }
         // Priority 2: slug route param (e.g. /fortune, /rossy)
+        // Checks the current slug first, then previous_slugs so that renamed
+        // businesses keep working at their old URL without any 404.
         if (slug) {
-          const biz = list.find((b) => b.slug === slug);
+          const biz =
+            list.find((b) => b.slug === slug) ||
+            list.find((b) => (b.previousSlugs ?? []).includes(slug));
           if (biz) {
             setBusinessId(biz.id);
             setBizPhone(biz.phone ?? "");

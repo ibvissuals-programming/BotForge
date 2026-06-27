@@ -485,6 +485,7 @@ const EMPTY_FORM = {
   personality: "",
   welcomeMsg: "",
   accentColor: "#7c6af7",
+  slug: "",
 };
 
 function businessToForm(b: Business): typeof EMPTY_FORM {
@@ -499,7 +500,18 @@ function businessToForm(b: Business): typeof EMPTY_FORM {
     personality: b.personality ?? "",
     welcomeMsg: b.welcomeMsg ?? "",
     accentColor: b.accentColor ?? "#7c6af7",
+    slug: b.slug ?? "",
   };
+}
+
+// Client-side mirror of the backend validateSlugFormat — gives instant feedback
+// before the form is submitted. Auto-lowercasing and space→hyphen replacement
+// happen in the onChange handler, so only leading/trailing hyphens can still
+// produce an error here.
+function validateSlugClient(slug: string): string {
+  if (!slug) return "";
+  if (slug.startsWith("-") || slug.endsWith("-")) return "Slug must not start or end with a hyphen.";
+  return "";
 }
 
 function AddBusinessModal({
@@ -517,6 +529,7 @@ function AddBusinessModal({
   const [form, setForm] = useState(isEdit ? businessToForm(editBusiness!) : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [slugError, setSlugError] = useState("");
 
   function set(field: keyof typeof EMPTY_FORM, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -525,6 +538,17 @@ function AddBusinessModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSlugError("");
+
+    // Catch any remaining slug format errors before hitting the network.
+    if (form.slug) {
+      const clientSlugErr = validateSlugClient(form.slug);
+      if (clientSlugErr) {
+        setSlugError(clientSlugErr);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const url = isEdit ? `/api/businesses/${editBusiness!.id}` : "/api/businesses";
@@ -536,7 +560,13 @@ function AddBusinessModal({
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "Failed to save.");
+        const errMsg = data.error ?? "Failed to save.";
+        // Route slug-specific errors (conflict or format) to the slug field.
+        if (res.status === 409 || errMsg.toLowerCase().includes("slug")) {
+          setSlugError(errMsg);
+        } else {
+          setError(errMsg);
+        }
         return;
       }
       const result = (await res.json()) as Business;
@@ -602,6 +632,51 @@ function AddBusinessModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Chatbot URL Slug */}
+          <div>
+            <label className={labelCls}>
+              Chatbot URL Slug
+              {!isEdit && (
+                <span className="ml-1.5 text-[#444] normal-case tracking-normal font-normal">— optional</span>
+              )}
+            </label>
+            <div
+              className={`flex items-center bg-[#111] rounded-xl overflow-hidden transition-colors ${
+                slugError
+                  ? "border border-red-500/50"
+                  : "border border-[#2a2a2a] focus-within:border-[#555]"
+              }`}
+            >
+              <span className="pl-3 pr-0.5 text-[12px] text-[#444] select-none shrink-0 whitespace-nowrap">
+                site.com/
+              </span>
+              <input
+                className="flex-1 bg-transparent text-[#f0f0f0] placeholder-[#444] px-2 py-2.5 text-[13px] focus:outline-none min-w-0"
+                placeholder={isEdit ? "required" : "auto-generated"}
+                value={form.slug}
+                onChange={(e) => {
+                  const v = e.target.value
+                    .toLowerCase()
+                    .replace(/\s+/g, "-")
+                    .replace(/[^a-z0-9-]/g, "");
+                  set("slug", v);
+                  setSlugError(validateSlugClient(v));
+                }}
+              />
+            </div>
+            {slugError ? (
+              <p className="mt-1.5 text-[11px] text-red-400">{slugError}</p>
+            ) : isEdit ? (
+              <p className="mt-1.5 text-[11px] text-[#555]">
+                Old URLs keep working after a rename — existing links are never broken.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-[#555]">
+                Leave blank to auto-generate from business name.
+              </p>
+            )}
           </div>
 
           <div>

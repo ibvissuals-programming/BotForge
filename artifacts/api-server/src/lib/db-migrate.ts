@@ -35,6 +35,8 @@ const SCHEMA_SQL = `
   ALTER TABLE leads ADD COLUMN IF NOT EXISTS contacted BOOLEAN NOT NULL DEFAULT FALSE;
   -- idempotent: add slug column for clean shareable chatbot URLs
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE;
+  -- idempotent: track old slugs so renamed businesses keep working at their old URL
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS previous_slugs TEXT[] NOT NULL DEFAULT '{}';
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
