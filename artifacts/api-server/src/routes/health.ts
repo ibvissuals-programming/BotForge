@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import { Pool } from "pg";
+import { requireAdmin } from "../middlewares/requireAdmin";
+import { pool as sharedPool } from "../lib/db";
 
 const router: IRouter = Router();
 
@@ -122,6 +124,47 @@ router.get("/health", async (_req, res): Promise<void> => {
     secrets,
     db,
     timestamp: new Date().toISOString(),
+  });
+});
+
+// ── Admin health-status probe ─────────────────────────────────────────────────
+//
+// Lightweight: reuses the shared pool (no new connection), and hits
+// Groq's /models list (no tokens consumed). Returns within ~5 s under any
+// failure because both checks run in parallel with a 5 s AbortController.
+
+router.get("/health/status", requireAdmin, async (_req, res): Promise<void> => {
+  const [dbResult, groqResult] = await Promise.allSettled([
+    // DB — quick ping via the shared pool (already open)
+    (async () => {
+      const t0 = Date.now();
+      await sharedPool.query("SELECT 1");
+      return Date.now() - t0;
+    })(),
+
+    // Groq — list models endpoint (no completions, no tokens)
+    (async () => {
+      const key = process.env.GROQ_API_KEY;
+      if (!key) throw new Error("GROQ_API_KEY not set");
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5_000);
+      try {
+        const r = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { Authorization: `Bearer ${key}` },
+          signal: controller.signal,
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      } finally {
+        clearTimeout(timer);
+      }
+    })(),
+  ]);
+
+  res.json({
+    db:   dbResult.status   === "fulfilled" ? "ok" : "error",
+    groq: groqResult.status === "fulfilled" ? "ok" : "error",
+    dbLatencyMs: dbResult.status === "fulfilled" ? dbResult.value : null,
+    checkedAt: new Date().toISOString(),
   });
 });
 

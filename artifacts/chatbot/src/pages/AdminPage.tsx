@@ -23,6 +23,7 @@ import {
   Calendar,
   HelpCircle,
   Search,
+  Activity,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { buildShareableUrl, buildSlugUrl } from "@/lib/configUrl";
@@ -144,6 +145,7 @@ function ClientCard({
   onViewLeads,
   weeklyMessages,
   weeklyLeads,
+  lastActive,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
@@ -153,6 +155,7 @@ function ClientCard({
   onViewLeads: () => void;
   weeklyMessages: number;
   weeklyLeads: number;
+  lastActive: string | null;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -317,7 +320,7 @@ function ClientCard({
         )}
         {!business.location && !business.instagram && <div className="mb-1" />}
 
-        <p className="text-[12px] text-[#555] mb-2 flex items-center gap-1.5">
+        <p className="text-[12px] text-[#555] mb-1 flex items-center gap-1.5">
           <MessageSquare className="w-3 h-3 shrink-0" />
           <span>
             <span className="text-[#888] font-medium">{weeklyMessages}</span>
@@ -326,6 +329,14 @@ function ClientCard({
             <span className="text-[#888] font-medium">{weeklyLeads}</span>
             {" "}{weeklyLeads === 1 ? "lead" : "leads"}
             {" this week"}
+          </span>
+        </p>
+        <p className="text-[12px] text-[#555] mb-2 flex items-center gap-1.5">
+          <Activity className="w-3 h-3 shrink-0" />
+          <span>
+            {lastActive
+              ? <><span className="text-[#888]">Last active</span>{" "}{timeAgo(lastActive)}</>
+              : <span className="text-[#444]">No activity yet</span>}
           </span>
         </p>
 
@@ -1167,7 +1178,8 @@ export default function AdminPage() {
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [leadsJumpBiz, setLeadsJumpBiz] = useState<string | undefined>(undefined);
-  const [weeklyStats, setWeeklyStats] = useState<Record<string, { messages: number; leads: number }>>({});
+  const [weeklyStats, setWeeklyStats] = useState<Record<string, { messages: number; leads: number; lastActive: string | null }>>({});
+  const [healthStatus, setHealthStatus] = useState<{ db: "ok" | "error"; groq: "ok" | "error" } | null>(null);
 
   const filteredBusinesses = clientSearch.trim()
     ? businesses.filter((b) =>
@@ -1203,11 +1215,23 @@ export default function AdminPage() {
     function refreshStats() {
       adminFetch("/api/stats/weekly")
         .then((r) => r.json())
-        .then((data) => setWeeklyStats(data as Record<string, { messages: number; leads: number }>))
+        .then((data) => setWeeklyStats(data as Record<string, { messages: number; leads: number; lastActive: string | null }>))
         .catch(() => {});
     }
     refreshStats();
     const id = setInterval(refreshStats, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    function checkHealth() {
+      adminFetch("/api/health/status")
+        .then((r) => r.json())
+        .then((data) => setHealthStatus(data as { db: "ok" | "error"; groq: "ok" | "error" }))
+        .catch(() => {});
+    }
+    checkHealth();
+    const id = setInterval(checkHealth, 60_000);
     return () => clearInterval(id);
   }, []);
 
@@ -1266,6 +1290,27 @@ export default function AdminPage() {
               <p className="text-[13px] text-[#888] mt-1">
                 {loading ? "Loading…" : `${businesses.length} ${businesses.length === 1 ? "client" : "clients"} configured`}
               </p>
+              {healthStatus && (
+                <p className="text-[11px] text-[#555] mt-1.5 flex items-center gap-1.5">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      healthStatus.db === "ok" && healthStatus.groq === "ok"
+                        ? "bg-green-500"
+                        : healthStatus.db === "ok" || healthStatus.groq === "ok"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                  />
+                  {healthStatus.db === "ok" && healthStatus.groq === "ok"
+                    ? "DB · Groq healthy"
+                    : [
+                        healthStatus.db !== "ok" ? "DB error" : null,
+                        healthStatus.groq !== "ok" ? "Groq unreachable" : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                </p>
+              )}
             </div>
             <button
               onClick={handleSignOut}
@@ -1396,6 +1441,7 @@ export default function AdminPage() {
                   onViewLeads={() => handleViewLeads(b.id)}
                   weeklyMessages={weeklyStats[b.id]?.messages ?? 0}
                   weeklyLeads={weeklyStats[b.id]?.leads ?? 0}
+                  lastActive={weeklyStats[b.id]?.lastActive ?? null}
                 />
               ))
             )}
