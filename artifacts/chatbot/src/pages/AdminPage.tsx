@@ -27,25 +27,9 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 import { buildShareableUrl } from "@/lib/configUrl";
 import { BIZ_EMOJIS, BIZ_TYPE_OPTIONS, type BookingIntent } from "@/lib/bizTypes";
-import type { Lead } from "@/lib/types";
+import type { Business, Lead } from "@/lib/types";
 import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
 import type { BotConfig } from "@workspace/api-client-react";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Business {
-  id: string;
-  bizName: string;
-  bizType: string;
-  phone?: string | null;
-  services?: string | null;
-  location?: string | null;
-  howToOrder?: string | null;
-  instagram?: string | null;
-  personality?: string | null;
-  welcomeMsg?: string | null;
-  accentColor?: string | null;
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
