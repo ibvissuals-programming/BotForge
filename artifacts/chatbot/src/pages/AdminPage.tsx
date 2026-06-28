@@ -1150,6 +1150,25 @@ function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Busi
     setLeads((prev) => prev.map((l) => l.id === id ? { ...l, contacted } : l));
   }
 
+  async function handleJsonBackup() {
+    try {
+      const res = await adminFetch("/api/admin/export");
+      if (!res.ok) return;
+      const data = await res.json() as Record<string, unknown>;
+      const date = new Date().toISOString().slice(0, 10);
+      const filename = `botforge-backup-${date}.json`;
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent — export is best-effort
+    }
+  }
+
   return (
     <div className="flex-1 px-4 pb-8 flex flex-col gap-3">
       {/* Name search */}
@@ -1192,6 +1211,14 @@ function LeadsInbox({ businesses, initialFilterBiz = "all" }: { businesses: Busi
         >
           <Download className="w-4 h-4" />
           CSV{displayedLeads.length > 0 && <> · {displayedLeads.length}</>}
+        </button>
+        <button
+          onClick={handleJsonBackup}
+          title="Download full JSON backup"
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-[#ccc] hover:border-[#3a3a3a] transition-colors text-[12px] font-medium"
+        >
+          <Download className="w-4 h-4" />
+          Backup
         </button>
         <button
           onClick={() => setPendingOnly((v) => !v)}
