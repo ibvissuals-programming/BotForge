@@ -41,6 +41,8 @@ export interface BotConfig {
   instagram?: string | null;
   /** @nullable */
   accentColor?: string | null;
+  /** @nullable */
+  backgroundTheme?: string | null;
 }
 
 export interface ChatMessageInput {

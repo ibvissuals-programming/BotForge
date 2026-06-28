@@ -48,6 +48,7 @@ function businessToConfig(b: Business): BotConfig {
     personality: b.personality ?? null,
     welcomeMsg: b.welcomeMsg ?? null,
     accentColor: b.accentColor ?? null,
+    backgroundTheme: b.backgroundTheme ?? "dark",
   };
 }
 
@@ -531,6 +532,7 @@ const EMPTY_FORM = {
   personality: "",
   welcomeMsg: "",
   accentColor: "#7c6af7",
+  backgroundTheme: "dark",
   slug: "",
 };
 
@@ -546,6 +548,7 @@ function businessToForm(b: Business): typeof EMPTY_FORM {
     personality: b.personality ?? "",
     welcomeMsg: b.welcomeMsg ?? "",
     accentColor: b.accentColor ?? "#7c6af7",
+    backgroundTheme: b.backgroundTheme ?? "dark",
     slug: b.slug ?? "",
   };
 }
@@ -812,6 +815,26 @@ function AddBusinessModal({
                 onChange={(e) => set("accentColor", e.target.value)}
                 maxLength={7}
               />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Chatbot Theme</label>
+            <div className="flex gap-2">
+              {(["dark", "light"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => set("backgroundTheme", t)}
+                  className={`flex-1 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
+                    form.backgroundTheme === t
+                      ? "bg-white text-black"
+                      : "bg-[#1a1a1a] text-[#888] hover:text-[#ccc] border border-[#2a2a2a]"
+                  }`}
+                >
+                  {t === "dark" ? "Dark" : "Light"}
+                </button>
+              ))}
             </div>
           </div>
 

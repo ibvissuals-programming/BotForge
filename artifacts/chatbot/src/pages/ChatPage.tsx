@@ -267,6 +267,7 @@ export default function ChatPage() {
           personality?: string | null;
           welcomeMsg?: string | null;
           accentColor?: string | null;
+          backgroundTheme?: string | null;
           slug?: string | null;
           previousSlugs?: string[];
         }>>;
@@ -300,6 +301,7 @@ export default function ChatPage() {
               personality: biz.personality ?? undefined,
               welcomeMsg: biz.welcomeMsg ?? undefined,
               accentColor: biz.accentColor ?? undefined,
+              backgroundTheme: biz.backgroundTheme ?? "dark",
             });
           } else {
             setSlugNotFound(true);
@@ -398,7 +400,7 @@ export default function ChatPage() {
 
   const accentColor = config.accentColor ?? "#b5517a";
   const accentHsl = hexToHsl(accentColor);
-  const isLight = isLightColor(accentColor);
+  const isLight = config.backgroundTheme === "light";
   // On a light-theme page white would be invisible as text/border/tint colour.
   // displayAccent routes to near-black for those roles; accentColor itself is
   // still used as the WhatsApp button background (contrast handled separately).

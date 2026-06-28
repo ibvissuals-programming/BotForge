@@ -45,6 +45,8 @@ const SCHEMA_SQL = `
     business_id TEXT        NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
     sent_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  -- idempotent: chatbot page colour theme ('dark' | 'light')
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS background_theme TEXT NOT NULL DEFAULT 'dark';
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
@@ -73,6 +75,7 @@ const SEED_BUSINESSES = [
     welcomeMsg:
       "Got questions beyond what's above? Ask me anything about booking, timing, or your specific hair needs! 💕",
     accentColor: "#b5517a",
+    backgroundTheme: "dark",
   },
   {
     id: "rossy-cakes-events-management",
@@ -103,6 +106,7 @@ const SEED_BUSINESSES = [
     welcomeMsg:
       "Have a question about our cakes or events? Ask me anything — let's make your moment sweeter! 🎂",
     accentColor: "#e07a5f",
+    backgroundTheme: "light",
   },
 ];
 
@@ -149,8 +153,8 @@ export async function runMigrations(): Promise<void> {
       const result = await client.query(
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
-            instagram, personality, welcome_msg, accent_color, slug, previous_slugs)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            instagram, personality, welcome_msg, accent_color, slug, previous_slugs, background_theme)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -166,6 +170,7 @@ export async function runMigrations(): Promise<void> {
           biz.accentColor,
           biz.slug,
           biz.previousSlugs ?? [],
+          biz.backgroundTheme ?? "dark",
         ]
       );
       if ((result.rowCount ?? 0) > 0) {
