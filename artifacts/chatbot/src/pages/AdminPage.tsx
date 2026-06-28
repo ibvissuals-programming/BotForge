@@ -887,8 +887,24 @@ function LeadCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [contactedLoading, setContactedLoading] = useState(false);
+  const [introCopied, setIntroCopied] = useState(false);
 
   const intent = INTENT_STYLES[lead.bookingIntent] ?? INTENT_STYLES.low;
+
+  function handleCopyIntro(e: React.MouseEvent) {
+    e.stopPropagation();
+    const name = lead.customerName ?? "there";
+    const services =
+      lead.servicesInterested.length > 0
+        ? lead.servicesInterested.join(" & ")
+        : "your enquiry";
+    const bizPart = biz?.bizName ? ` at ${biz.bizName}` : "";
+    const msg = `Hi ${name}! Just following up on your interest in ${services}${bizPart} — when would be a good time to connect?`;
+    navigator.clipboard.writeText(msg).then(() => {
+      setIntroCopied(true);
+      setTimeout(() => setIntroCopied(false), 2000);
+    });
+  }
   const waText = encodeURIComponent(
     `Hi! Following up from our chat — ${lead.summaryText || "you were interested in our services"}.`
   );
@@ -1000,7 +1016,20 @@ function LeadCard({
             <span className="text-[11px] text-[#444]">
               {lead.conversationLength} {lead.conversationLength === 1 ? "message" : "messages"}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Copy intro message */}
+              <button
+                onClick={handleCopyIntro}
+                className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                  introCopied
+                    ? "bg-[#1f1f1f] text-green-400 border-green-500/30"
+                    : "bg-[#1f1f1f] text-[#666] border-[#2a2a2a] hover:text-[#ccc] hover:border-[#3a3a3a]"
+                }`}
+              >
+                {introCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {introCopied ? "Copied!" : "Copy Intro"}
+              </button>
+
               {/* Contacted toggle */}
               <button
                 onClick={handleContactedToggle}
