@@ -45,6 +45,8 @@ export interface BotConfig {
   backgroundTheme?: string | null;
   /** @nullable */
   lightThemePalette?: string | null;
+  /** @nullable */
+  lightThemeStyle?: string | null;
 }
 
 export interface ChatMessageInput {

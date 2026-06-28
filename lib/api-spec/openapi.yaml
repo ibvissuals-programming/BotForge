@@ -96,6 +96,12 @@ components:
           type: ["string", "null"]
         accentColor:
           type: ["string", "null"]
+        backgroundTheme:
+          type: ["string", "null"]
+        lightThemePalette:
+          type: ["string", "null"]
+        lightThemeStyle:
+          type: ["string", "null"]
     ChatMessageInput:
       type: object
       required: [messages, config]

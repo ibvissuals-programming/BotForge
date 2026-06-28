@@ -23,6 +23,7 @@ export interface Business {
   previousSlugs?: string[];
   backgroundTheme?: string | null;
   lightThemePalette?: string | null;
+  lightThemeStyle?: string | null;
 }
 
 function rowToBusiness(row: Record<string, unknown>): Business {
@@ -42,6 +43,7 @@ function rowToBusiness(row: Record<string, unknown>): Business {
     previousSlugs: (row.previous_slugs as string[] | null) ?? [],
     backgroundTheme: (row.background_theme as string | null) ?? "dark",
     lightThemePalette: (row.light_theme_palette as string | null) ?? null,
+    lightThemeStyle: (row.light_theme_style as string | null) ?? "plain",
   };
 }
 
@@ -101,6 +103,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
     accentColor,
     backgroundTheme,
     lightThemePalette,
+    lightThemeStyle,
     slug: requestedSlugRaw,
   } = req.body as Partial<Business>;
 
@@ -171,8 +174,8 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
     const result = await pool.query(
       `INSERT INTO businesses
          (id, biz_name, biz_type, phone, services, location, how_to_order,
-          instagram, personality, welcome_msg, accent_color, slug, background_theme, light_theme_palette)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+          instagram, personality, welcome_msg, accent_color, slug, background_theme, light_theme_palette, light_theme_style)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         id,
@@ -189,6 +192,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
         slug,
         backgroundTheme?.trim() || "dark",
         lightThemePalette?.trim() || null,
+        lightThemeStyle?.trim() || "plain",
       ]
     );
 
@@ -216,6 +220,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
     accentColor,
     backgroundTheme,
     lightThemePalette,
+    lightThemeStyle,
     slug: requestedSlugRaw,
   } = req.body as Partial<Business>;
 
@@ -257,16 +262,17 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
        SET biz_name=$1, biz_type=$2, phone=$3, services=$4, location=$5,
            how_to_order=$6, instagram=$7, personality=$8, welcome_msg=$9,
            accent_color=$10, background_theme=$11, light_theme_palette=$12,
-           slug = CASE WHEN $13::TEXT = '' THEN slug ELSE $13 END,
+           light_theme_style=$13,
+           slug = CASE WHEN $14::TEXT = '' THEN slug ELSE $14 END,
            previous_slugs = CASE
-             WHEN $13::TEXT != ''
+             WHEN $14::TEXT != ''
                AND slug IS NOT NULL
-               AND slug != $13
+               AND slug != $14
                AND NOT (COALESCE(previous_slugs, '{}') @> ARRAY[slug])
              THEN array_append(COALESCE(previous_slugs, '{}'), slug)
              ELSE COALESCE(previous_slugs, '{}')
            END
-       WHERE id=$14
+       WHERE id=$15
        RETURNING *`,
       [
         bizName.trim(),
@@ -281,6 +287,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
         accentColor?.trim() || null,
         backgroundTheme?.trim() || "dark",
         lightThemePalette?.trim() || null,
+        lightThemeStyle?.trim() || "plain",
         requestedSlug,
         id,
       ]

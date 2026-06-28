@@ -49,6 +49,8 @@ const SCHEMA_SQL = `
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS background_theme TEXT NOT NULL DEFAULT 'dark';
   -- idempotent: optional JSON hex palette for light-theme businesses
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS light_theme_palette TEXT;
+  -- idempotent: 'plain' = generic white/black, 'branded' = apply lightThemePalette
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS light_theme_style TEXT NOT NULL DEFAULT 'plain';
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
@@ -78,6 +80,8 @@ const SEED_BUSINESSES = [
       "Got questions beyond what's above? Ask me anything about booking, timing, or your specific hair needs! 💕",
     accentColor: "#b5517a",
     backgroundTheme: "dark",
+    lightThemePalette: null as string | null,
+    lightThemeStyle: "plain",
   },
   {
     id: "rossy-cakes-events-management",
@@ -122,6 +126,7 @@ const SEED_BUSINESSES = [
       input: "#fceae2",
       ring: "#c9a45a",
     }),
+    lightThemeStyle: "branded",
   },
 ];
 
@@ -168,8 +173,9 @@ export async function runMigrations(): Promise<void> {
       const result = await client.query(
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
-            instagram, personality, welcome_msg, accent_color, slug, previous_slugs, background_theme, light_theme_palette)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+            instagram, personality, welcome_msg, accent_color, slug, previous_slugs,
+            background_theme, light_theme_palette, light_theme_style)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -187,6 +193,7 @@ export async function runMigrations(): Promise<void> {
           biz.previousSlugs ?? [],
           biz.backgroundTheme ?? "dark",
           biz.lightThemePalette ?? null,
+          biz.lightThemeStyle ?? "plain",
         ]
       );
       if ((result.rowCount ?? 0) > 0) {
@@ -197,7 +204,22 @@ export async function runMigrations(): Promise<void> {
     }
     logger.info("DB migration: seed complete ✅");
 
-    // 3. Backfill slugs for any businesses that predate the slug column.
+    // 3. Backfill light_theme_style for businesses that predate the column.
+    //    Any business that already has a palette set is implicitly "branded" —
+    //    flip only rows still sitting at the default 'plain' that have a palette.
+    try {
+      await client.query(`
+        UPDATE businesses
+        SET light_theme_style = 'branded'
+        WHERE light_theme_palette IS NOT NULL
+          AND light_theme_style = 'plain'
+      `);
+      logger.info("DB migration: light_theme_style backfill complete ✅");
+    } catch (err) {
+      logger.warn({ err }, "DB migration: light_theme_style backfill failed");
+    }
+
+    // 4. Backfill slugs for any businesses that predate the slug column.
     //    Uses explicit slugs for the two known seed businesses, and derives
     //    from the first word of bizName for any others.
     //    Wrapped in try/catch so a uniqueness conflict on an edge-case

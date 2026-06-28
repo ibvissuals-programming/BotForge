@@ -18,6 +18,7 @@ export interface Business {
   previousSlugs?: string[];
   backgroundTheme?: string | null;
   lightThemePalette?: string | null;
+  lightThemeStyle?: string | null;
 }
 
 // Frontend mirror of the backend Lead type (api-server/src/types/lead.ts).

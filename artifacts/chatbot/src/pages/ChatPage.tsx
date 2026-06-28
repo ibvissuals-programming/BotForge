@@ -269,6 +269,7 @@ export default function ChatPage() {
           accentColor?: string | null;
           backgroundTheme?: string | null;
           lightThemePalette?: string | null;
+          lightThemeStyle?: string | null;
           slug?: string | null;
           previousSlugs?: string[];
         }>>;
@@ -304,6 +305,7 @@ export default function ChatPage() {
               accentColor: biz.accentColor ?? undefined,
               backgroundTheme: biz.backgroundTheme ?? "dark",
               lightThemePalette: biz.lightThemePalette ?? undefined,
+              lightThemeStyle: biz.lightThemeStyle ?? "plain",
             });
           } else {
             setSlugNotFound(true);
@@ -413,7 +415,7 @@ export default function ChatPage() {
     string
   >>;
   let lightPalette: LightPalette = {};
-  if (isLight && config.lightThemePalette) {
+  if (isLight && config.lightThemeStyle === "branded" && config.lightThemePalette) {
     try { lightPalette = JSON.parse(config.lightThemePalette) as LightPalette; } catch { /* use generic defaults */ }
   }
   // lp(key, fallback) — resolves a palette hex entry to an HSL triple string.

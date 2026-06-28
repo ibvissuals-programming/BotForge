@@ -50,6 +50,7 @@ function businessToConfig(b: Business): BotConfig {
     accentColor: b.accentColor ?? null,
     backgroundTheme: b.backgroundTheme ?? "dark",
     lightThemePalette: b.lightThemePalette ?? null,
+    lightThemeStyle: b.lightThemeStyle ?? "plain",
   };
 }
 
@@ -535,6 +536,7 @@ const EMPTY_FORM = {
   accentColor: "#7c6af7",
   backgroundTheme: "dark",
   lightThemePalette: "",
+  lightThemeStyle: "plain",
   slug: "",
 };
 
@@ -552,6 +554,7 @@ function businessToForm(b: Business): typeof EMPTY_FORM {
     accentColor: b.accentColor ?? "#7c6af7",
     backgroundTheme: b.backgroundTheme ?? "dark",
     lightThemePalette: b.lightThemePalette ?? "",
+    lightThemeStyle: b.lightThemeStyle ?? "plain",
     slug: b.slug ?? "",
   };
 }
@@ -840,6 +843,33 @@ function AddBusinessModal({
               ))}
             </div>
           </div>
+
+          {form.backgroundTheme === "light" && (
+            <div>
+              <label className={labelCls}>Light Theme Style</label>
+              <div className="flex gap-2">
+                {(["plain", "branded"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => set("lightThemeStyle", s)}
+                    className={`flex-1 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
+                      form.lightThemeStyle === s
+                        ? "bg-white text-black"
+                        : "bg-[#1a1a1a] text-[#888] hover:text-[#ccc] border border-[#2a2a2a]"
+                    }`}
+                  >
+                    {s === "plain" ? "Plain White" : "Branded"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-[#555] leading-snug">
+                {form.lightThemeStyle === "branded"
+                  ? "Applies the custom colour palette stored for this business."
+                  : "Generic white background with dark text — no custom palette."}
+              </p>
+            </div>
+          )}
 
           {error && <p className="text-red-400 text-[13px]">{error}</p>}
         </form>
