@@ -15,4 +15,5 @@ export interface Lead {
   conversationLength: number;
   summaryText: string;
   contacted: boolean;
+  note: string | null;
 }

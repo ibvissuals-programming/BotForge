@@ -888,6 +888,10 @@ function LeadCard({
   const [expanded, setExpanded] = useState(false);
   const [contactedLoading, setContactedLoading] = useState(false);
   const [introCopied, setIntroCopied] = useState(false);
+  const [noteText, setNoteText] = useState(lead.note ?? "");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const savedNoteRef = useRef(lead.note ?? "");
 
   const intent = INTENT_STYLES[lead.bookingIntent] ?? INTENT_STYLES.low;
 
@@ -905,6 +909,25 @@ function LeadCard({
       setTimeout(() => setIntroCopied(false), 2000);
     });
   }
+  async function handleNoteBlur() {
+    if (noteText === savedNoteRef.current) return;
+    setNoteSaving(true);
+    try {
+      const res = await adminFetch(`/api/leads/${lead.id}/note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: noteText }),
+      });
+      if (res.ok) {
+        savedNoteRef.current = noteText;
+        setNoteSaved(true);
+        setTimeout(() => setNoteSaved(false), 2000);
+      }
+    } finally {
+      setNoteSaving(false);
+    }
+  }
+
   const waText = encodeURIComponent(
     `Hi! Following up from our chat — ${lead.summaryText || "you were interested in our services"}.`
   );
@@ -1010,6 +1033,29 @@ function LeadCard({
               </ul>
             </div>
           )}
+
+          {/* Note / follow-up memo */}
+          <div>
+            <p className="text-[10px] font-semibold text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <Pencil className="w-3 h-3" />
+              Note
+              {noteSaving && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
+              {noteSaved && (
+                <span className="text-green-400 text-[10px] font-semibold normal-case tracking-normal ml-1">
+                  Saved ✓
+                </span>
+              )}
+            </p>
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              onBlur={handleNoteBlur}
+              placeholder="Add a follow-up note…"
+              rows={2}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-[#ccc] placeholder-[#444] text-[12px] rounded-xl px-3 py-2.5 outline-none focus:border-[#555] resize-none transition-colors leading-relaxed"
+            />
+          </div>
 
           {/* Footer: messages + WhatsApp + contacted */}
           <div className="flex items-center justify-between pt-2 border-t border-[#1f1f1f] gap-2 flex-wrap">

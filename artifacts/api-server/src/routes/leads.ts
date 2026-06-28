@@ -18,6 +18,7 @@ function rowToLead(row: Record<string, unknown>): Lead {
     conversationLength: (row.conversation_length as number) ?? 0,
     summaryText: (row.summary_text as string) ?? "",
     contacted: (row.contacted as boolean) ?? false,
+    note: (row.note as string | null) ?? null,
   };
 }
 
@@ -103,6 +104,34 @@ router.patch("/leads/:id/contacted", requireAdmin, async (req, res): Promise<voi
   } catch (err) {
     logger.error({ err }, "Failed to update lead contacted status");
     res.status(500).json({ error: "Failed to update contacted status" });
+  }
+});
+
+// ── PATCH /leads/:id/note — admin only ───────────────────────────────────────
+
+router.patch("/leads/:id/note", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { note } = req.body as { note?: string };
+
+  if (typeof note !== "string") {
+    res.status(400).json({ error: "note (string) is required" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE leads SET note = $1 WHERE id = $2 RETURNING *",
+      [note.trim() || null, id]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+    logger.info({ id }, "Lead note updated");
+    res.json(rowToLead(result.rows[0]));
+  } catch (err) {
+    logger.error({ err }, "Failed to update lead note");
+    res.status(500).json({ error: "Failed to update note" });
   }
 });
 
