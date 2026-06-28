@@ -32,6 +32,15 @@ function mentionsBooking(text: string): boolean {
   return BOOKING_KEYWORDS.test(text);
 }
 
+/** Returns true when the hex color is light enough to need dark text on top. */
+function isLightColor(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
+}
+
 type AccessTier = "free" | "trial-ended" | "demo" | "demo-ended";
 
 // ── UI maps ──────────────────────────────────────────────────────────────────
@@ -128,12 +137,12 @@ function WhatsAppHandoffButton({
     <button
       onClick={handleClick}
       disabled={isSummarizing}
-      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold text-white transition-all hover:opacity-90 active:opacity-75 disabled:opacity-60 cursor-pointer"
+      className={`mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold transition-all hover:opacity-90 active:opacity-75 disabled:opacity-60 cursor-pointer ${isLightColor(accentColor) ? "text-gray-900" : "text-white"}`}
       style={{ backgroundColor: accentColor }}
     >
       {isSummarizing ? (
         <>
-          <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+          <span className="w-3 h-3 rounded-full border-2 border-current/30 border-t-current animate-spin shrink-0" />
           Preparing your details…
         </>
       ) : (
