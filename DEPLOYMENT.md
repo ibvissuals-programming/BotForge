@@ -67,19 +67,20 @@ DB migration: seeded business ✅   (first boot only)
 pnpm run pre-publish
 ```
 
-Expected output (all 6 checks green):
+Expected output (all 7 checks green):
 ```
   ✅  GET /api/healthz — server responds          HTTP 200
   ✅  GET /api/healthz — DB connected             connected, latency Xms
   ✅  POST /api/auth/admin-login                  authenticated
-  ✅  GET /api/businesses — returns valid array   1 business found
+  ✅  GET /api/businesses — returns valid array   2 businesses found
   ✅  GET /api/leads — returns valid array        0 leads found
+  ✅  GET /api/leads (no token) — returns 401     HTTP 401 as expected
   ✅  GET localhost:3000 — chatbot serves         HTTP 200, app shell ready · "Styled By Fortune" config confirmed
 
   All checks passed — safe to publish ✅
 ```
 
-All 6 green = the project is fully working and safe to publish. Any ❌
+All 7 green = the project is fully working and safe to publish. Any ❌
 means something is wrong — the error message will tell you exactly what.
 
 ---
@@ -198,9 +199,11 @@ Expected output for a ready-to-deploy state:
   ✅  POST /api/auth/admin-login — endpoint reachable
        authenticated
   ✅  GET /api/businesses — returns valid array
-       1 business found
+       2 businesses found
   ✅  GET /api/leads — returns valid array
        0 leads found
+  ✅  GET /api/leads (no token) — returns 401
+       HTTP 401 as expected
   ✅  GET localhost:3000 — chatbot serves + Fortune config in API
        HTTP 200, app shell ready · "Styled By Fortune" config confirmed
 
@@ -411,7 +414,12 @@ before `app.listen()`). They are fully idempotent:
 - `CREATE TABLE IF NOT EXISTS businesses`
 - `CREATE TABLE IF NOT EXISTS leads`
 - `ALTER TABLE leads ADD COLUMN IF NOT EXISTS contacted BOOLEAN NOT NULL DEFAULT FALSE`
-- Seeds "Styled By Fortune" only when `businesses` table is completely empty
+- `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE`
+- `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS previous_slugs TEXT[] NOT NULL DEFAULT '{}'`
+- `ALTER TABLE leads ADD COLUMN IF NOT EXISTS note TEXT`
+- `CREATE TABLE IF NOT EXISTS message_events`
+- Seeds "Styled By Fortune" and "Rossy Cakes & Events Management" when `businesses`
+  table is completely empty (idempotent per-row via `ON CONFLICT (id) DO NOTHING`)
 
 If migrations fail (e.g. bad `DATABASE_URL`), the server exits with code 1 before
 binding to port 8080, so the deployment healthcheck never passes.

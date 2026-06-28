@@ -30,7 +30,7 @@ After secrets are confirmed, follow the "First Time Setup" section in
 pnpm --filter @workspace/api-server run dev   # API server (port 8080)
 pnpm --filter @workspace/chatbot run dev      # Chatbot UI (port 3000)
 pnpm run secrets:check                        # Validate all required secrets
-pnpm run pre-publish                          # 6-check smoke test (requires both workflows running)
+pnpm run pre-publish                          # 7-check smoke test (requires both workflows running)
 pnpm run typecheck                            # Full typecheck across all packages
 pnpm run build                                # Typecheck + build all packages
 ```
@@ -91,9 +91,12 @@ explanation.
   before `app.listen()`. It is idempotent — safe to run on every start.
   Fortune's seed fires only when `businesses` table is completely empty.
 
-- **Session-based admin auth.** The admin dashboard uses a password gate
-  (`BOTFORGE_CEO_PASSWORD`) with an Express session cookie. There are no JWT
-  tokens.
+- **Token-based admin auth.** `POST /api/auth/admin-login` validates
+  `BOTFORGE_CEO_PASSWORD` and returns a short-lived HMAC-SHA256 signed token
+  (`expiry.hex_sig`, 24 h TTL, keyed on `BOTFORGE_CEO_PASSWORD`). Every
+  subsequent admin request sends it in the `x-admin-token` header; `requireAdmin`
+  verifies it via `timingSafeEqual`. There are no sessions, no cookies, and no
+  `SESSION_SECRET` — that env var is unused.
 
 - **`DATABASE_URL` must not be in Deployments → Secrets.** Replit injects the
   production value automatically. A manually-set value overrides the injection
@@ -138,4 +141,6 @@ search, CSV export, and direct navigation from each business card.
   Do not hardcode the port in `vite.config.ts`.
 - **`replit-artifact/artifact.toml` uses `[services.env]`, not
   `[services.production.run.env]`.** The latter is silently ignored by Replit.
-- **The admin page is at `/admin`.** The chatbot is at `/?c=<encoded-config>`.
+- **The admin page is at `/admin`.** Each chatbot is at `/:slug` (e.g.
+  `/styledbyfortune`). The legacy `?c=<encoded-config>` query-string format
+  still works for backwards compatibility but slug routing is the primary path.
