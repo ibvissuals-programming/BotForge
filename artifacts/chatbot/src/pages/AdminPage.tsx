@@ -291,7 +291,10 @@ function ClientCard({
                 </>
               )}
               {uncontactedCount > 0 && (
-                <span className="ml-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full inline-block bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                <span
+                  onClick={(e) => { e.stopPropagation(); onViewLeads(); }}
+                  className="ml-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full inline-block bg-amber-500/20 border border-amber-500/30 text-amber-400 cursor-pointer hover:bg-amber-500/30 transition-colors"
+                >
                   {uncontactedCount} pending
                 </span>
               )}
