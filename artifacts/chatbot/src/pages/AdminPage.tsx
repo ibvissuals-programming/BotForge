@@ -146,6 +146,7 @@ function ClientCard({
   weeklyMessages,
   weeklyLeads,
   lastActive,
+  uncontactedCount,
 }: {
   business: Business;
   onDeleted: (id: string) => void;
@@ -156,6 +157,7 @@ function ClientCard({
   weeklyMessages: number;
   weeklyLeads: number;
   lastActive: string | null;
+  uncontactedCount: number;
 }) {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -287,6 +289,11 @@ function ClientCard({
                     <span className="ml-1.5 text-[11px] text-[#555]">· {timeAgo(lastLeadAt.toISOString())}</span>
                   )}
                 </>
+              )}
+              {uncontactedCount > 0 && (
+                <span className="ml-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full inline-block bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                  {uncontactedCount} pending
+                </span>
               )}
             </div>
           </div>
@@ -1456,6 +1463,7 @@ export default function AdminPage() {
                   weeklyMessages={weeklyStats[b.id]?.messages ?? 0}
                   weeklyLeads={weeklyStats[b.id]?.leads ?? 0}
                   lastActive={weeklyStats[b.id]?.lastActive ?? null}
+                  uncontactedCount={allLeads.filter((l) => l.businessId === b.id && !l.contacted).length}
                 />
               ))
             )}
