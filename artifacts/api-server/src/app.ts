@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import ogScraperRouter from "./routes/og-scraper";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -30,5 +31,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// OG meta tag injection for link-preview scrapers (WhatsApp, Twitter, etc.).
+// Must be registered after /api so it only matches non-API paths.
+// Only responds when the User-Agent is a known scraper — real browsers call
+// next() and receive a 404 (they use the chatbot Vite server or static dist).
+app.use(ogScraperRouter);
 
 export default app;

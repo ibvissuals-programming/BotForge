@@ -19,6 +19,7 @@ export interface Business {
   backgroundTheme?: string | null;
   lightThemePalette?: string | null;
   lightThemeStyle?: string | null;
+  ogImageFilename?: string | null;
 }
 
 // Frontend mirror of the backend Lead type (api-server/src/types/lead.ts).

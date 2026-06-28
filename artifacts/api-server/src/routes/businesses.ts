@@ -24,6 +24,7 @@ export interface Business {
   backgroundTheme?: string | null;
   lightThemePalette?: string | null;
   lightThemeStyle?: string | null;
+  ogImageFilename?: string | null;
 }
 
 function rowToBusiness(row: Record<string, unknown>): Business {
@@ -44,6 +45,7 @@ function rowToBusiness(row: Record<string, unknown>): Business {
     backgroundTheme: (row.background_theme as string | null) ?? "dark",
     lightThemePalette: (row.light_theme_palette as string | null) ?? null,
     lightThemeStyle: (row.light_theme_style as string | null) ?? "plain",
+    ogImageFilename: (row.og_image_filename as string | null) ?? null,
   };
 }
 
@@ -174,8 +176,9 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
     const result = await pool.query(
       `INSERT INTO businesses
          (id, biz_name, biz_type, phone, services, location, how_to_order,
-          instagram, personality, welcome_msg, accent_color, slug, background_theme, light_theme_palette, light_theme_style)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          instagram, personality, welcome_msg, accent_color, slug, background_theme,
+          light_theme_palette, light_theme_style, og_image_filename)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
         id,
@@ -193,6 +196,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
         backgroundTheme?.trim() || "dark",
         lightThemePalette?.trim() || null,
         lightThemeStyle?.trim() || "plain",
+        (req.body as Partial<Business>).ogImageFilename?.trim() || null,
       ]
     );
 
@@ -221,6 +225,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
     backgroundTheme,
     lightThemePalette,
     lightThemeStyle,
+    ogImageFilename,
     slug: requestedSlugRaw,
   } = req.body as Partial<Business>;
 
@@ -262,17 +267,17 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
        SET biz_name=$1, biz_type=$2, phone=$3, services=$4, location=$5,
            how_to_order=$6, instagram=$7, personality=$8, welcome_msg=$9,
            accent_color=$10, background_theme=$11, light_theme_palette=$12,
-           light_theme_style=$13,
-           slug = CASE WHEN $14::TEXT = '' THEN slug ELSE $14 END,
+           light_theme_style=$13, og_image_filename=$14,
+           slug = CASE WHEN $15::TEXT = '' THEN slug ELSE $15 END,
            previous_slugs = CASE
-             WHEN $14::TEXT != ''
+             WHEN $15::TEXT != ''
                AND slug IS NOT NULL
-               AND slug != $14
+               AND slug != $15
                AND NOT (COALESCE(previous_slugs, '{}') @> ARRAY[slug])
              THEN array_append(COALESCE(previous_slugs, '{}'), slug)
              ELSE COALESCE(previous_slugs, '{}')
            END
-       WHERE id=$15
+       WHERE id=$16
        RETURNING *`,
       [
         bizName.trim(),
@@ -288,6 +293,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
         backgroundTheme?.trim() || "dark",
         lightThemePalette?.trim() || null,
         lightThemeStyle?.trim() || "plain",
+        ogImageFilename?.trim() || null,
         requestedSlug,
         id,
       ]

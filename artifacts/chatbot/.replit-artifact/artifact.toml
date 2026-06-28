@@ -19,12 +19,12 @@ run = "pnpm --filter @workspace/chatbot run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/chatbot", "run", "build" ]
-publicDir = "artifacts/chatbot/dist/public"
-serve = "static"
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.run]
+# og-server.mjs replaces the static file server so it can inject per-business
+# Open Graph meta tags before link-preview scrapers (WhatsApp, Twitter, etc.)
+# read the response. Serves static assets directly and falls back to index.html.
+args = ["node", "artifacts/chatbot/og-server.mjs"]
 
 [services.env]
 PORT = "3000"

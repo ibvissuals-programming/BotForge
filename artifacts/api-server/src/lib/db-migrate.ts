@@ -51,6 +51,8 @@ const SCHEMA_SQL = `
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS light_theme_palette TEXT;
   -- idempotent: 'plain' = generic white/black, 'branded' = apply lightThemePalette
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS light_theme_style TEXT NOT NULL DEFAULT 'plain';
+  -- idempotent: filename of the per-business Open Graph preview image (e.g. 'fortune.jpg')
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS og_image_filename TEXT;
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
@@ -82,6 +84,7 @@ const SEED_BUSINESSES = [
     backgroundTheme: "dark",
     lightThemePalette: null as string | null,
     lightThemeStyle: "plain",
+    ogImageFilename: "fortune.jpg",
   },
   {
     id: "rossy-cakes-events-management",
@@ -127,6 +130,7 @@ const SEED_BUSINESSES = [
       ring: "#c9a45a",
     }),
     lightThemeStyle: "branded",
+    ogImageFilename: "rossy.jpg",
   },
 ];
 
@@ -174,8 +178,8 @@ export async function runMigrations(): Promise<void> {
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
             instagram, personality, welcome_msg, accent_color, slug, previous_slugs,
-            background_theme, light_theme_palette, light_theme_style)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+            background_theme, light_theme_palette, light_theme_style, og_image_filename)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -194,6 +198,7 @@ export async function runMigrations(): Promise<void> {
           biz.backgroundTheme ?? "dark",
           biz.lightThemePalette ?? null,
           biz.lightThemeStyle ?? "plain",
+          biz.ogImageFilename ?? null,
         ]
       );
       if ((result.rowCount ?? 0) > 0) {
@@ -219,7 +224,25 @@ export async function runMigrations(): Promise<void> {
       logger.warn({ err }, "DB migration: light_theme_style backfill failed");
     }
 
-    // 4. Backfill slugs for any businesses that predate the slug column.
+    // 4. Backfill og_image_filename for the two known seed businesses that
+    //    predate this column — only updates rows where the column is still NULL.
+    try {
+      await client.query(`
+        UPDATE businesses
+        SET og_image_filename = CASE
+          WHEN id = 'styled-by-fortune'             THEN 'fortune.jpg'
+          WHEN id = 'rossy-cakes-events-management' THEN 'rossy.jpg'
+          ELSE og_image_filename
+        END
+        WHERE id IN ('styled-by-fortune', 'rossy-cakes-events-management')
+          AND og_image_filename IS NULL
+      `);
+      logger.info("DB migration: og_image_filename backfill complete ✅");
+    } catch (err) {
+      logger.warn({ err }, "DB migration: og_image_filename backfill failed");
+    }
+
+    // 5. Backfill slugs for any businesses that predate the slug column.
     //    Uses explicit slugs for the two known seed businesses, and derives
     //    from the first word of bizName for any others.
     //    Wrapped in try/catch so a uniqueness conflict on an edge-case
