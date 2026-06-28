@@ -31,6 +31,7 @@ import { BIZ_EMOJIS, BIZ_TYPE_OPTIONS, type BookingIntent } from "@/lib/bizTypes
 import type { Business, Lead } from "@/lib/types";
 import { exportLeadsToCSV } from "@/lib/csvExport";
 import { adminFetch, clearAdminToken } from "@/lib/adminFetch";
+import { isLightColor } from "@/lib/colorUtils";
 import type { BotConfig } from "@workspace/api-client-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -380,7 +381,7 @@ function ClientCard({
           </button>
           <button
             onClick={handleOpenBot}
-            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl text-white transition-all flex-1 justify-center"
+            className={`flex items-center gap-1.5 text-[12px] font-medium px-3 py-2 rounded-xl transition-all flex-1 justify-center ${isLightColor(accent) ? "text-gray-900" : "text-white"}`}
             style={{ background: accent }}
           >
             Open Bot

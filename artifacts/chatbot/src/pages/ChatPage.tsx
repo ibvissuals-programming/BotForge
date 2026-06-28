@@ -7,6 +7,7 @@ import { BIZ_EMOJIS, BIZ_TYPE_LABELS, type BookingIntent } from "@/lib/bizTypes"
 import type { Lead } from "@/lib/types";
 import { parseServicesBlock, type ServiceLine } from "@/lib/parseServices";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { isLightColor } from "@/lib/colorUtils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -30,15 +31,6 @@ const DEMO_EXPIRY_KEY = "botDemoExpiry";
 
 function mentionsBooking(text: string): boolean {
   return BOOKING_KEYWORDS.test(text);
-}
-
-/** Returns true when the hex color is light enough to need dark text on top. */
-function isLightColor(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6;
 }
 
 type AccessTier = "free" | "trial-ended" | "demo" | "demo-ended";
@@ -406,6 +398,12 @@ export default function ChatPage() {
 
   const accentColor = config.accentColor ?? "#b5517a";
   const accentHsl = hexToHsl(accentColor);
+  const isLight = isLightColor(accentColor);
+  // On a light-theme page white would be invisible as text/border/tint colour.
+  // displayAccent routes to near-black for those roles; accentColor itself is
+  // still used as the WhatsApp button background (contrast handled separately).
+  const displayAccent = isLight ? "#1a1a1a" : accentColor;
+  const displayAccentHsl = isLight ? "0 0% 10%" : accentHsl;
 
   const parsedLines = config.services ? parseServicesBlock(config.services) : [];
   const serviceTagline = parsedLines.find((l): l is { kind: "tagline"; text: string } => l.kind === "tagline");
@@ -414,12 +412,28 @@ export default function ChatPage() {
   const infoItems = parsedLines.filter((l): l is { kind: "info"; text: string } => l.kind === "info");
 
   return (
-    <div className="flex justify-center bg-black dark">
-      {accentHsl && <style>{`:root { --primary: ${accentHsl}; }`}</style>}
-      <div className="w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border">
+    <div className={`flex justify-center ${isLight ? "bg-white" : "bg-black dark"}`}>
+      <style>{[
+        displayAccentHsl ? `:root { --primary: ${displayAccentHsl}; }` : "",
+        isLight ? `.chat-light-theme {
+          --background: 0 0% 100%;
+          --foreground: 0 0% 10%;
+          --card: 0 0% 97%;
+          --card-foreground: 0 0% 10%;
+          --card-border: 0 0% 88%;
+          --border: 0 0% 88%;
+          --muted: 0 0% 94%;
+          --muted-foreground: 0 0% 42%;
+          --input: 0 0% 88%;
+          --primary: 0 0% 10%;
+          --primary-foreground: 0 0% 100%;
+          --ring: 0 0% 60%;
+        }` : "",
+      ].join("\n")}</style>
+      <div className={`w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border${isLight ? " chat-light-theme" : ""}`}>
 
         {/* ── Landing Section ────────────────────────────────────────────── */}
-        <section className="relative flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${accentColor}33` }}>
+        <section className="relative flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${displayAccent}33` }}>
           <a
             href={`${DEVELOPER_WHATSAPP_URL}?text=${encodeURIComponent(`Hi! I saw the BotForge-powered chatbot for ${config.bizName} and I'm interested in getting one for my own business too 🚀`)}`}
             target="_blank"
@@ -433,7 +447,7 @@ export default function ChatPage() {
           <div className="flex items-start gap-4 mb-5">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
-              style={{ background: `${accentColor}18`, border: `1px solid ${accentColor}33` }}
+              style={{ background: `${displayAccent}18`, border: `1px solid ${displayAccent}33` }}
             >
               {BIZ_EMOJIS[config.bizType || "other"]}
             </div>
@@ -452,7 +466,7 @@ export default function ChatPage() {
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-2">
                 <span
                   className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize"
-                  style={{ background: `${accentColor}18`, color: accentColor }}
+                  style={{ background: `${displayAccent}18`, color: displayAccent }}
                 >
                   {BIZ_TYPE_LABELS[config.bizType || "other"] ?? config.bizType}
                 </span>
@@ -467,7 +481,7 @@ export default function ChatPage() {
 
           {/* Business Description — tagline from services block, if present */}
           {serviceTagline && (
-            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6 italic border-l-2 pl-3" style={{ borderColor: `${accentColor}55` }}>
+            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6 italic border-l-2 pl-3" style={{ borderColor: `${displayAccent}55` }}>
               {serviceTagline.text}
             </p>
           )}
@@ -477,7 +491,7 @@ export default function ChatPage() {
             <div className="mb-6">
               <h2
                 className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-                style={{ color: accentColor }}
+                style={{ color: displayAccent }}
               >
                 Services &amp; Pricing
               </h2>
@@ -487,7 +501,7 @@ export default function ChatPage() {
                     <p
                       key={i}
                       className="text-[10px] font-semibold tracking-wider uppercase mt-4 mb-0.5 first:mt-0 px-1"
-                      style={{ color: `${accentColor}99` }}
+                      style={{ color: `${displayAccent}99` }}
                     >
                       {item.text}
                     </p>
@@ -499,7 +513,7 @@ export default function ChatPage() {
                       <span className="text-[13px] text-foreground leading-snug">{item.name}</span>
                       <span
                         className="text-[13px] font-semibold ml-3 flex-shrink-0"
-                        style={{ color: accentColor }}
+                        style={{ color: displayAccent }}
                       >
                         {item.price}
                       </span>
@@ -515,7 +529,7 @@ export default function ChatPage() {
             <div className="mb-6">
               <h2
                 className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-                style={{ color: accentColor }}
+                style={{ color: displayAccent }}
               >
                 Business Information
               </h2>
@@ -539,7 +553,7 @@ export default function ChatPage() {
             <div className="mb-5">
               <h2
                 className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-                style={{ color: accentColor }}
+                style={{ color: displayAccent }}
               >
                 Contact
               </h2>
@@ -736,9 +750,9 @@ export default function ChatPage() {
                   onClick={() => setShowSuggestions((s) => !s)}
                   className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold select-none transition-all active:scale-95"
                   style={{
-                    background: `hsla(${accentHsl}, 0.15)`,
-                    color: accentColor,
-                    border: `1px solid hsla(${accentHsl}, 0.3)`,
+                    background: `hsla(${displayAccentHsl}, 0.15)`,
+                    color: displayAccent,
+                    border: `1px solid hsla(${displayAccentHsl}, 0.3)`,
                   }}
                 >
                   <span>💬</span>
