@@ -401,11 +401,34 @@ export default function ChatPage() {
   const accentColor = config.accentColor ?? "#b5517a";
   const accentHsl = hexToHsl(accentColor);
   const isLight = config.backgroundTheme === "light";
-  // On a light-theme page white would be invisible as text/border/tint colour.
-  // displayAccent routes to near-black for those roles; accentColor itself is
-  // still used as the WhatsApp button background (contrast handled separately).
-  const displayAccent = isLight ? "#1a1a1a" : accentColor;
-  const displayAccentHsl = isLight ? "0 0% 10%" : accentHsl;
+
+  // Per-business optional light-theme palette: JSON-encoded hex colour map.
+  // When present, overrides the generic light-theme CSS variable defaults so
+  // each business can have a fully branded chatbot without code changes.
+  type LightPalette = Partial<Record<
+    "background"|"foreground"|"card"|"cardBorder"|"border"|
+    "muted"|"mutedForeground"|"primary"|"primaryForeground"|"input"|"ring",
+    string
+  >>;
+  let lightPalette: LightPalette = {};
+  if (isLight && config.lightThemePalette) {
+    try { lightPalette = JSON.parse(config.lightThemePalette) as LightPalette; } catch { /* use generic defaults */ }
+  }
+  // lp(key, fallback) — resolves a palette hex entry to an HSL triple string.
+  const lp = (key: keyof LightPalette, fallback: string): string => {
+    const hex = lightPalette[key];
+    return hex ? (hexToHsl(hex) ?? fallback) : fallback;
+  };
+
+  // On a light-theme page, displayAccent drives inline-style uses (section
+  // headings, price values, borders). When a custom palette is set, derive
+  // displayAccent from the palette primary for on-brand tinting; otherwise
+  // fall back to near-black. accentColor is still used as the WhatsApp button
+  // background (contrast handled separately).
+  const displayAccent = isLight ? (lightPalette.primary ?? "#1a1a1a") : accentColor;
+  const displayAccentHsl = isLight
+    ? (lightPalette.primary ? (hexToHsl(lightPalette.primary) ?? "0 0% 10%") : "0 0% 10%")
+    : accentHsl;
 
   const parsedLines = config.services ? parseServicesBlock(config.services) : [];
   const serviceTagline = parsedLines.find((l): l is { kind: "tagline"; text: string } => l.kind === "tagline");
@@ -414,25 +437,25 @@ export default function ChatPage() {
   const infoItems = parsedLines.filter((l): l is { kind: "info"; text: string } => l.kind === "info");
 
   return (
-    <div className={`flex justify-center ${isLight ? "bg-white" : "bg-black dark"}`}>
+    <div className={`flex justify-center ${isLight ? "bg-background chat-light-theme" : "bg-black dark"}`}>
       <style>{[
         displayAccentHsl ? `:root { --primary: ${displayAccentHsl}; }` : "",
         isLight ? `.chat-light-theme {
-          --background: 0 0% 100%;
-          --foreground: 0 0% 10%;
-          --card: 0 0% 97%;
-          --card-foreground: 0 0% 10%;
-          --card-border: 0 0% 88%;
-          --border: 0 0% 88%;
-          --muted: 0 0% 94%;
-          --muted-foreground: 0 0% 42%;
-          --input: 0 0% 88%;
-          --primary: 0 0% 10%;
-          --primary-foreground: 0 0% 100%;
-          --ring: 0 0% 60%;
+          --background: ${lp("background", "0 0% 100%")};
+          --foreground: ${lp("foreground", "0 0% 10%")};
+          --card: ${lp("card", "0 0% 97%")};
+          --card-foreground: ${lp("foreground", "0 0% 10%")};
+          --card-border: ${lp("cardBorder", "0 0% 88%")};
+          --border: ${lp("border", "0 0% 88%")};
+          --muted: ${lp("muted", "0 0% 94%")};
+          --muted-foreground: ${lp("mutedForeground", "0 0% 42%")};
+          --input: ${lp("input", "0 0% 88%")};
+          --primary: ${lp("primary", "0 0% 10%")};
+          --primary-foreground: ${lp("primaryForeground", "0 0% 100%")};
+          --ring: ${lp("ring", "0 0% 60%")};
         }` : "",
       ].join("\n")}</style>
-      <div className={`w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border${isLight ? " chat-light-theme" : ""}`}>
+      <div className="w-full max-w-[480px] flex flex-col bg-background shadow-2xl border-x border-border">
 
         {/* ── Landing Section ────────────────────────────────────────────── */}
         <section className="relative flex-none px-5 pt-8 pb-6" style={{ borderBottom: `1px solid ${displayAccent}33` }}>

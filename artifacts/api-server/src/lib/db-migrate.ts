@@ -47,6 +47,8 @@ const SCHEMA_SQL = `
   );
   -- idempotent: chatbot page colour theme ('dark' | 'light')
   ALTER TABLE businesses ADD COLUMN IF NOT EXISTS background_theme TEXT NOT NULL DEFAULT 'dark';
+  -- idempotent: optional JSON hex palette for light-theme businesses
+  ALTER TABLE businesses ADD COLUMN IF NOT EXISTS light_theme_palette TEXT;
 `;
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
@@ -105,8 +107,21 @@ const SEED_BUSINESSES = [
     personality: "Warm, celebratory, and helpful. Excited about making special moments memorable. Uses friendly, encouraging language.",
     welcomeMsg:
       "Have a question about our cakes or events? Ask me anything — let's make your moment sweeter! 🎂",
-    accentColor: "#e07a5f",
+    accentColor: "#c9a45a",
     backgroundTheme: "light",
+    lightThemePalette: JSON.stringify({
+      background: "#fdf4ee",
+      foreground: "#3d1520",
+      card: "#ffffff",
+      cardBorder: "#c9a45a",
+      border: "#c9a45a",
+      muted: "#f5e6dc",
+      mutedForeground: "#7a3040",
+      primary: "#8b1a2e",
+      primaryForeground: "#ffffff",
+      input: "#fceae2",
+      ring: "#c9a45a",
+    }),
   },
 ];
 
@@ -153,8 +168,8 @@ export async function runMigrations(): Promise<void> {
       const result = await client.query(
         `INSERT INTO businesses
            (id, biz_name, biz_type, phone, services, location, how_to_order,
-            instagram, personality, welcome_msg, accent_color, slug, previous_slugs, background_theme)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+            instagram, personality, welcome_msg, accent_color, slug, previous_slugs, background_theme, light_theme_palette)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
          ON CONFLICT (id) DO NOTHING`,
         [
           biz.id,
@@ -171,6 +186,7 @@ export async function runMigrations(): Promise<void> {
           biz.slug,
           biz.previousSlugs ?? [],
           biz.backgroundTheme ?? "dark",
+          biz.lightThemePalette ?? null,
         ]
       );
       if ((result.rowCount ?? 0) > 0) {

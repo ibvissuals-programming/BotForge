@@ -27,4 +27,6 @@ export interface BotConfig {
   accentColor?: string | null;
   /** @nullable */
   backgroundTheme?: string | null;
+  /** @nullable */
+  lightThemePalette?: string | null;
 }

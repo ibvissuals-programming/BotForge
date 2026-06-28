@@ -49,6 +49,7 @@ function businessToConfig(b: Business): BotConfig {
     welcomeMsg: b.welcomeMsg ?? null,
     accentColor: b.accentColor ?? null,
     backgroundTheme: b.backgroundTheme ?? "dark",
+    lightThemePalette: b.lightThemePalette ?? null,
   };
 }
 
@@ -533,6 +534,7 @@ const EMPTY_FORM = {
   welcomeMsg: "",
   accentColor: "#7c6af7",
   backgroundTheme: "dark",
+  lightThemePalette: "",
   slug: "",
 };
 
@@ -549,6 +551,7 @@ function businessToForm(b: Business): typeof EMPTY_FORM {
     welcomeMsg: b.welcomeMsg ?? "",
     accentColor: b.accentColor ?? "#7c6af7",
     backgroundTheme: b.backgroundTheme ?? "dark",
+    lightThemePalette: b.lightThemePalette ?? "",
     slug: b.slug ?? "",
   };
 }

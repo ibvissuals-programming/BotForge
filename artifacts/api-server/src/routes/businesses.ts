@@ -22,6 +22,7 @@ export interface Business {
   slug?: string | null;
   previousSlugs?: string[];
   backgroundTheme?: string | null;
+  lightThemePalette?: string | null;
 }
 
 function rowToBusiness(row: Record<string, unknown>): Business {
@@ -40,6 +41,7 @@ function rowToBusiness(row: Record<string, unknown>): Business {
     slug: (row.slug as string | null) ?? null,
     previousSlugs: (row.previous_slugs as string[] | null) ?? [],
     backgroundTheme: (row.background_theme as string | null) ?? "dark",
+    lightThemePalette: (row.light_theme_palette as string | null) ?? null,
   };
 }
 
@@ -98,6 +100,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
     welcomeMsg,
     accentColor,
     backgroundTheme,
+    lightThemePalette,
     slug: requestedSlugRaw,
   } = req.body as Partial<Business>;
 
@@ -168,8 +171,8 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
     const result = await pool.query(
       `INSERT INTO businesses
          (id, biz_name, biz_type, phone, services, location, how_to_order,
-          instagram, personality, welcome_msg, accent_color, slug, background_theme)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+          instagram, personality, welcome_msg, accent_color, slug, background_theme, light_theme_palette)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [
         id,
@@ -185,6 +188,7 @@ router.post("/businesses", requireAdmin, async (req, res): Promise<void> => {
         accentColor?.trim() || null,
         slug,
         backgroundTheme?.trim() || "dark",
+        lightThemePalette?.trim() || null,
       ]
     );
 
@@ -211,6 +215,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
     welcomeMsg,
     accentColor,
     backgroundTheme,
+    lightThemePalette,
     slug: requestedSlugRaw,
   } = req.body as Partial<Business>;
 
@@ -251,17 +256,17 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
       `UPDATE businesses
        SET biz_name=$1, biz_type=$2, phone=$3, services=$4, location=$5,
            how_to_order=$6, instagram=$7, personality=$8, welcome_msg=$9,
-           accent_color=$10, background_theme=$11,
-           slug = CASE WHEN $12::TEXT = '' THEN slug ELSE $12 END,
+           accent_color=$10, background_theme=$11, light_theme_palette=$12,
+           slug = CASE WHEN $13::TEXT = '' THEN slug ELSE $13 END,
            previous_slugs = CASE
-             WHEN $12::TEXT != ''
+             WHEN $13::TEXT != ''
                AND slug IS NOT NULL
-               AND slug != $12
+               AND slug != $13
                AND NOT (COALESCE(previous_slugs, '{}') @> ARRAY[slug])
              THEN array_append(COALESCE(previous_slugs, '{}'), slug)
              ELSE COALESCE(previous_slugs, '{}')
            END
-       WHERE id=$13
+       WHERE id=$14
        RETURNING *`,
       [
         bizName.trim(),
@@ -275,6 +280,7 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
         welcomeMsg?.trim() || null,
         accentColor?.trim() || null,
         backgroundTheme?.trim() || "dark",
+        lightThemePalette?.trim() || null,
         requestedSlug,
         id,
       ]
