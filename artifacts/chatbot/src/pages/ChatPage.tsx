@@ -268,6 +268,7 @@ export default function ChatPage() {
           welcomeMsg?: string | null;
           accentColor?: string | null;
           backgroundTheme?: string | null;
+          lightThemePalette?: string | null;
           slug?: string | null;
           previousSlugs?: string[];
         }>>;
@@ -302,6 +303,7 @@ export default function ChatPage() {
               welcomeMsg: biz.welcomeMsg ?? undefined,
               accentColor: biz.accentColor ?? undefined,
               backgroundTheme: biz.backgroundTheme ?? "dark",
+              lightThemePalette: biz.lightThemePalette ?? undefined,
             });
           } else {
             setSlugNotFound(true);
@@ -698,7 +700,7 @@ export default function ChatPage() {
                     <Button
                       key={i}
                       variant="outline"
-                      className="w-full justify-start h-auto py-3 px-4 text-left border-border bg-card hover:bg-muted hover:border-primary/50 transition-colors"
+                      className="w-full justify-start h-auto py-3 px-4 text-left text-foreground border-border bg-card hover:bg-muted hover:border-primary/50 transition-colors"
                       onClick={() => handleSend(reply)}
                       data-testid={`button-quick-reply-${i}`}
                     >
