@@ -629,8 +629,8 @@ export default function ShowcasePage() {
   const [controlsOn, setControlsOn] = useState(false);
   const [hint, setHint]             = useState(true);
   const [autoOn, setAutoOn]         = useState(false);
-  // "on" | "off" | null — drives the brief auto-advance toggle toast
-  const [autoToast, setAutoToast]   = useState<"on" | "off" | null>(null);
+  // "on" | "off" | "restart" | null — drives the brief auto-advance toggle toast
+  const [autoToast, setAutoToast]   = useState<"on" | "off" | "restart" | null>(null);
 
   const total = SCENES.length;
 
@@ -677,6 +677,9 @@ export default function ShowcasePage() {
           setAutoToast(next ? "on" : "off");
           return next;
         });
+      } else if (e.key === "l" || e.key === "L") {
+        setScene(0);
+        setAutoToast("restart");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -719,7 +722,7 @@ export default function ShowcasePage() {
               }}
             >
               <span className="text-[10px] font-semibold text-white/90 whitespace-nowrap">
-                {autoToast === "on" ? "Auto-advance ON" : "Auto-advance OFF"}
+                {autoToast === "on" ? "Auto-advance ON" : autoToast === "restart" ? "Restarted" : "Auto-advance OFF"}
               </span>
             </motion.div>
           )}
