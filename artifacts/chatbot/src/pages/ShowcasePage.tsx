@@ -612,29 +612,72 @@ function SceneCTA() {
 
 const SCENES = [SceneHook, SceneProblem, SceneIntro, SceneChat, SceneLead, SceneDashboard, SceneCTA];
 
+// How long each scene stays before auto-advancing (milliseconds).
+// Tuned to the animation completion time of each scene.
+const SCENE_DURATIONS = [
+  3500,  // 0 Hook       — simple text fades
+  5500,  // 1 Problem    — 4 notifications stagger in over ~2.2s + reading time
+  3500,  // 2 Intro      — logo + pills
+  7500,  // 3 Chat       — full conversation finishes at ~6.4s
+  5000,  // 4 Lead       — card + staggered fields
+  5000,  // 5 Dashboard  — counters + business cards
+  0,     // 6 CTA        — last scene, never auto-advance
+] as const;
+
 export default function ShowcasePage() {
-  const [scene, setScene]               = useState(0);
-  const [controlsOn, setControlsOn]     = useState(false);
-  const [hint, setHint]                 = useState(true);
+  const [scene, setScene]           = useState(0);
+  const [controlsOn, setControlsOn] = useState(false);
+  const [hint, setHint]             = useState(true);
+  const [autoOn, setAutoOn]         = useState(false);
+  // "on" | "off" | null — drives the brief auto-advance toggle toast
+  const [autoToast, setAutoToast]   = useState<"on" | "off" | null>(null);
 
   const total = SCENES.length;
 
   const goNext = useCallback(() => setScene((s) => Math.min(s + 1, total - 1)), [total]);
   const goPrev = useCallback(() => setScene((s) => Math.max(s - 1, 0)), []);
 
-  // Show hint briefly on each scene change, then auto-hide
+  // Show tap hint briefly on each scene change, then auto-hide
   useEffect(() => {
     setHint(true);
     const t = setTimeout(() => setHint(false), 2200);
     return () => clearTimeout(t);
   }, [scene]);
 
+  // Auto-advance timer — resets whenever scene or autoOn changes
+  useEffect(() => {
+    if (!autoOn) return;
+    const duration = SCENE_DURATIONS[scene];
+    if (!duration) return; // 0 means last scene — stop
+    const t = setTimeout(() => setScene((s) => Math.min(s + 1, total - 1)), duration);
+    return () => clearTimeout(t);
+  }, [autoOn, scene, total]);
+
+  // Auto-toast: show briefly then clear
+  useEffect(() => {
+    if (!autoToast) return;
+    const t = setTimeout(() => setAutoToast(null), 2000);
+    return () => clearTimeout(t);
+  }, [autoToast]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); goNext(); }
-      else if (e.key === "ArrowLeft")               { e.preventDefault(); goPrev(); }
-      else if (e.shiftKey && e.key === "H")         { setControlsOn((v) => !v); }
+      if (e.key === " " || e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.shiftKey && e.key === "H") {
+        setControlsOn((v) => !v);
+      } else if (e.key === "a" || e.key === "A") {
+        setAutoOn((v) => {
+          const next = !v;
+          setAutoToast(next ? "on" : "off");
+          return next;
+        });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -657,6 +700,29 @@ export default function ShowcasePage() {
       >
         <AnimatePresence mode="wait">
           <SceneComponent key={scene} />
+        </AnimatePresence>
+
+        {/* ── Auto-advance toast — brief confirmation, auto-fades ── */}
+        <AnimatePresence>
+          {autoToast && (
+            <motion.div
+              key={autoToast}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full pointer-events-none"
+              style={{
+                background: autoToast === "on" ? "rgba(124,58,237,0.55)" : "rgba(60,60,60,0.6)",
+                backdropFilter: "blur(12px)",
+                border: autoToast === "on" ? "1px solid rgba(167,139,250,0.35)" : "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              <span className="text-[10px] font-semibold text-white/90 whitespace-nowrap">
+                {autoToast === "on" ? "Auto-advance ON" : "Auto-advance OFF"}
+              </span>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* ── Progress dots — Shift+H to toggle, invisible during recording ── */}
@@ -689,6 +755,14 @@ export default function ShowcasePage() {
               >
                 {scene + 1}/{total}
               </span>
+              {autoOn && (
+                <span
+                  className="text-[9px] ml-0.5"
+                  style={{ color: "rgba(167,139,250,0.75)" }}
+                >
+                  ⏱
+                </span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
