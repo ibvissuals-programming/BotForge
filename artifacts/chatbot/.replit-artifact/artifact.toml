@@ -17,14 +17,25 @@ localPort = 3000
 [services.development]
 run = "pnpm --filter @workspace/chatbot run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/chatbot", "run", "build" ]
+[services.production.build]
+# PORT and BASE_PATH are required by vite.config.ts at build time.
+# Without them vite throws before emitting any output, leaving dist/public
+# empty and causing og-server.mjs to return 500 on startup.
+args = ["pnpm", "--filter", "@workspace/chatbot", "run", "build"]
+
+[services.production.build.env]
+PORT = "3000"
+BASE_PATH = "/"
+NODE_ENV = "production"
 
 [services.production.run]
 # og-server.mjs replaces the static file server so it can inject per-business
-# Open Graph meta tags before link-preview scrapers (WhatsApp, Twitter, etc.)
-# read the response. Serves static assets directly and falls back to index.html.
+# Open Graph meta tags before link-preview scrapers read the response.
+# It serves static assets directly and falls back to index.html for browsers.
 args = ["node", "artifacts/chatbot/og-server.mjs"]
+
+[services.production.health.startup]
+path = "/"
 
 [services.env]
 PORT = "3000"

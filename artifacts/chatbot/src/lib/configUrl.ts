@@ -24,7 +24,7 @@ export function buildShareableUrl(cfg: BotConfig): string {
 }
 
 export function buildSlugUrl(slug: string): string {
-  return `${window.location.origin}/api/preview/${slug}`;
+  return `${window.location.origin}/${slug}`;
 }
 
 export function hexToHsl(hex: string): string {
