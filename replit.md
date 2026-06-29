@@ -30,7 +30,7 @@ After secrets are confirmed, follow the "First Time Setup" section in
 pnpm --filter @workspace/api-server run dev   # API server (port 8080)
 pnpm --filter @workspace/chatbot run dev      # Chatbot UI (port 3000)
 pnpm run secrets:check                        # Validate all required secrets
-pnpm run pre-publish                          # 7-check smoke test (requires both workflows running)
+pnpm run pre-publish                          # 8-check smoke test (requires both workflows running)
 pnpm run typecheck                            # Full typecheck across all packages
 pnpm run build                                # Typecheck + build all packages
 ```

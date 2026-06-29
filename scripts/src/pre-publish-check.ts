@@ -131,6 +131,50 @@ async function run() {
     return `HTTP 200, app shell ready · "${fortune.bizName}" config confirmed`;
   }));
 
+  // ── 8. OG preview images reachable from the API server's own host ──────────
+  //
+  // The og-scraper and /api/preview/:slug routes emit og:image URLs pointing to
+  // the API server's host (e.g. https://<domain>/og/rossy.jpg).  WhatsApp and
+  // other link-preview bots follow that URL directly — if the API server cannot
+  // serve it, the preview shows a broken image.  This check catches exactly that
+  // class of bug: a missing express.static route, a failed build copy step, or
+  // a newly-added business whose image file was never committed.
+  results.push(await check("GET /og/<filename> — OG images reachable on API server host", async () => {
+    const token = await login();
+    const bizRes = await fetch(`${API}/api/businesses`, {
+      headers: { "X-Admin-Token": token },
+    });
+    if (!bizRes.ok) throw new Error(`Businesses API HTTP ${bizRes.status}`);
+    const businesses = (await bizRes.json()) as Array<{ bizName: string; ogImageFilename?: string | null }>;
+
+    const withImage = businesses.filter((b) => b.ogImageFilename);
+    if (withImage.length === 0) {
+      return "no businesses have ogImageFilename set — skipped";
+    }
+
+    const failures: string[] = [];
+    const successes: string[] = [];
+
+    for (const biz of withImage) {
+      const url = `${API}/og/${biz.ogImageFilename}`;
+      const res = await fetch(url);
+      const ct = res.headers.get("content-type") ?? "";
+      if (!res.ok) {
+        failures.push(`${biz.ogImageFilename} → HTTP ${res.status}`);
+      } else if (!ct.startsWith("image/")) {
+        failures.push(`${biz.ogImageFilename} → wrong content-type "${ct}"`);
+      } else {
+        successes.push(`${biz.ogImageFilename}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`${failures.length} image(s) unreachable: ${failures.join(", ")}`);
+    }
+
+    return `${successes.length} image${successes.length === 1 ? "" : "s"} OK (${successes.join(", ")})`;
+  }));
+
   // ── Print results ──────────────────────────────────────────────────────────
   let allPassed = true;
   for (const r of results) {
