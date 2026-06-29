@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, cp, mkdir } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -120,7 +120,22 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
   });
 }
 
-buildAll().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Copy OG preview images from the chatbot's public/og/ into dist/og/ so the
+// API server can serve them at /og/<filename>. The og-scraper and preview
+// routes both generate og:image URLs pointing to the API server's host, so the
+// images must be co-located with the API server bundle — not only in the
+// chatbot's static directory.
+async function copyOgImages() {
+  const src = path.resolve(artifactDir, "../chatbot/public/og");
+  const dest = path.resolve(artifactDir, "dist/og");
+  await mkdir(dest, { recursive: true });
+  await cp(src, dest, { recursive: true });
+  console.log("Copied og/ images to dist/og/");
+}
+
+buildAll()
+  .then(copyOgImages)
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
