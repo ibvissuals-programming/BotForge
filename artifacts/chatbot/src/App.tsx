@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import ChatPage from "@/pages/ChatPage";
 import AdminPage from "@/pages/AdminPage";
 import AdminGate from "@/components/AdminGate";
+import ShowcasePage from "@/pages/ShowcasePage";
 import { getConfigFromUrl } from "@/lib/configUrl";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ function Router() {
           </AdminGate>
         )}
       </Route>
+      <Route path="/showcase" component={ShowcasePage} />
       <Route path="/:slug" component={ChatPage} />
       <Route component={NotFound} />
     </Switch>
