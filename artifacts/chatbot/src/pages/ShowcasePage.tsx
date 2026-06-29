@@ -575,8 +575,7 @@ function SceneCTA() {
           className="text-[15px] leading-relaxed"
           style={{ color: "rgba(255,255,255,0.48)" }}
         >
-          BotForge — live in 24 hours.<br />
-          Built for Nigerian businesses.
+          Your business, one step ahead.
         </motion.p>
 
         <motion.div {...fadeUp(0.8)} className="w-full pt-3">
