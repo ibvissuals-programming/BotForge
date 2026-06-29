@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -627,14 +627,49 @@ export default function ShowcasePage() {
   const [scene, setScene]           = useState(0);
   const [controlsOn, setControlsOn] = useState(false);
   const [hint, setHint]             = useState(true);
-  const [autoOn, setAutoOn]         = useState(false);
+  const [autoOn, setAutoOn]               = useState(false);
   // string | null — drives the brief auto-advance toggle / scene-jump toast
-  const [autoToast, setAutoToast]   = useState<string | null>(null);
+  const [autoToast, setAutoToast]         = useState<string | null>(null);
+  // mobile floating panel — visible by default, hidden via long-press for recording
+  const [mobilePanelOn, setMobilePanelOn] = useState(true);
+  const longPressRef                      = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const total = SCENES.length;
 
   const goNext = useCallback(() => setScene((s) => Math.min(s + 1, total - 1)), [total]);
   const goPrev = useCallback(() => setScene((s) => Math.max(s - 1, 0)), []);
+
+  // Mobile panel: toggle auto-advance
+  const handleAutoButton = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAutoOn((v) => {
+      const next = !v;
+      setAutoToast(next ? "on" : "off");
+      return next;
+    });
+  }, []);
+
+  // Mobile panel: restart from scene 0
+  const handleRestartButton = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScene(0);
+    setAutoToast("restart");
+  }, []);
+
+  // Mobile panel: long-press to hide for clean recording
+  const handlePanelPressStart = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    longPressRef.current = setTimeout(() => {
+      setMobilePanelOn(false);
+    }, 600);
+  }, []);
+
+  const handlePanelPressEnd = useCallback(() => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  }, []);
 
   // Show tap hint briefly on each scene change, then auto-hide
   useEffect(() => {
@@ -784,6 +819,100 @@ export default function ShowcasePage() {
         >
           {scene === total - 1 ? "← tap to go back" : "tap to advance →"}
         </motion.p>
+
+        {/* ── Mobile control panel — bottom-right, hidden via long-press ──────
+            Two buttons: auto-advance toggle + restart.
+            Long-press (600ms) hides the panel for clean recording.
+            Tap-to-advance on the main scene area is unaffected (stopPropagation
+            on all panel interactions). ── */}
+        <AnimatePresence>
+          {mobilePanelOn && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, x: 8 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.8, x: 8 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-10 right-3 flex flex-col gap-2 z-20"
+              onPointerDown={handlePanelPressStart}
+              onPointerUp={handlePanelPressEnd}
+              onPointerLeave={handlePanelPressEnd}
+              onPointerCancel={handlePanelPressEnd}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Auto-advance toggle */}
+              <motion.button
+                onClick={handleAutoButton}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                style={{
+                  background: autoOn ? "rgba(124,58,237,0.75)" : "rgba(20,20,20,0.8)",
+                  border: autoOn
+                    ? "1px solid rgba(167,139,250,0.5)"
+                    : "1px solid rgba(255,255,255,0.14)",
+                  backdropFilter: "blur(14px)",
+                  boxShadow: autoOn
+                    ? "0 2px 12px rgba(124,58,237,0.4)"
+                    : "0 2px 8px rgba(0,0,0,0.4)",
+                }}
+                title="Toggle auto-advance (A)"
+              >
+                {/* Play / Pause icons via CSS — avoids emoji */}
+                {autoOn ? (
+                  <span
+                    className="flex gap-0.5"
+                    style={{ transform: "scale(0.7)" }}
+                  >
+                    <span className="block w-[4px] h-[14px] rounded-sm bg-white" />
+                    <span className="block w-[4px] h-[14px] rounded-sm bg-white" />
+                  </span>
+                ) : (
+                  <span
+                    className="block"
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderTop: "7px solid transparent",
+                      borderBottom: "7px solid transparent",
+                      borderLeft: "12px solid white",
+                      marginLeft: "2px",
+                    }}
+                  />
+                )}
+              </motion.button>
+
+              {/* Restart (scene 0) */}
+              <motion.button
+                onClick={handleRestartButton}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: "rgba(20,20,20,0.8)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  backdropFilter: "blur(14px)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}
+                title="Restart from Scene 1 (L)"
+              >
+                {/* Restart arc via SVG — clean, no emoji */}
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M8 2a6 6 0 1 0 5.657 4H12a4.5 4.5 0 1 1-1.318-3.182L9 4.5h4V.5L11.5 2A6 6 0 0 0 8 2Z"
+                    fill="white"
+                    fillOpacity="0.85"
+                  />
+                </svg>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Recovery corner — tap when panel is hidden to bring it back ──
+            Invisible 48×48px hot zone, bottom-right. Equivalent of Shift+H
+            for mobile. Always present so the panel is never truly lost. ── */}
+        <div
+          className="absolute bottom-0 right-0 w-12 h-12 z-20"
+          onClick={(e) => { e.stopPropagation(); setMobilePanelOn(true); }}
+        />
       </div>
     </div>
   );
