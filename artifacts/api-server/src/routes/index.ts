@@ -7,6 +7,7 @@ import businessesRouter from "./businesses";
 import promoRouter from "./promo";
 import statsRouter from "./stats";
 import adminRouter from "./admin";
+import previewRouter from "./preview";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(businessesRouter);
 router.use(promoRouter);
 router.use(statsRouter);
 router.use(adminRouter);
+router.use(previewRouter);
 
 export default router;
