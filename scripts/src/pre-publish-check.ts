@@ -175,6 +175,111 @@ async function run() {
     return `${successes.length} image${successes.length === 1 ? "" : "s"} OK (${successes.join(", ")})`;
   }));
 
+  // ── 9. OG tags present when fetched with scraper UA ──────────────────────
+  //
+  // Spawns og-server.mjs on a temp port against the production build output
+  // (dist/public/) and fetches each business slug with a WhatsApp User-Agent.
+  // Verifies: HTTP 200 + og:image present + og:image contains the correct
+  // ogImageFilename.  Kills the temp server when done.
+  //
+  // This test runs against og-server.mjs directly (not the Vite dev server)
+  // because og-server.mjs is the production binary.  It is the exact check
+  // that would have caught the cross-container localhost:8080 failure that
+  // caused the WhatsApp preview bug.
+  results.push(await check("GET /:slug (WhatsApp UA via og-server) — og:image present and correct", async () => {
+    const { spawn } = await import("child_process");
+    const path = await import("path");
+
+    // Resolve paths relative to workspace root (script runs from scripts/)
+    const workspaceRoot = path.resolve(process.cwd(), "..");
+    const ogServerPath = path.join(workspaceRoot, "artifacts/chatbot/og-server.mjs");
+    const distPath = path.join(workspaceRoot, "artifacts/chatbot/dist/public");
+
+    // Verify the build output exists before attempting to spawn
+    const fs = await import("fs");
+    if (!fs.existsSync(distPath)) {
+      throw new Error(
+        "artifacts/chatbot/dist/public not found — run `PORT=3000 BASE_PATH=/ pnpm --filter @workspace/chatbot run build` first"
+      );
+    }
+
+    const OG_PORT = 3099;
+
+    // Spawn og-server.mjs on the temp port
+    const proc = spawn("node", [ogServerPath], {
+      env: { ...process.env, PORT: String(OG_PORT) },
+      stdio: "pipe",
+    });
+
+    // Wait for the server to be ready (up to 5 s)
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("og-server.mjs did not start within 5 s")), 5_000);
+      proc.stdout?.on("data", (chunk: Buffer) => {
+        if (chunk.toString().includes("listening")) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+      proc.on("error", (err) => { clearTimeout(timeout); reject(err); });
+      proc.on("exit", (code) => { clearTimeout(timeout); reject(new Error(`og-server.mjs exited early with code ${code}`)); });
+    });
+
+    const killServer = () => { try { proc.kill(); } catch { /* ignore */ } };
+
+    try {
+      const token = await login();
+      const bizRes = await fetch(`${API}/api/businesses`, {
+        headers: { "X-Admin-Token": token },
+      });
+      if (!bizRes.ok) throw new Error(`Businesses API HTTP ${bizRes.status}`);
+      const businesses = (await bizRes.json()) as Array<{
+        bizName: string;
+        slug?: string | null;
+        ogImageFilename?: string | null;
+      }>;
+
+      const withSlugAndImage = businesses.filter((b) => b.slug && b.ogImageFilename);
+      if (withSlugAndImage.length === 0) {
+        return "no businesses have both slug and ogImageFilename set — skipped";
+      }
+
+      const failures: string[] = [];
+      const successes: string[] = [];
+
+      for (const biz of withSlugAndImage) {
+        const url = `http://localhost:${OG_PORT}/${biz.slug}`;
+        const res = await fetch(url, {
+          headers: { "User-Agent": "WhatsApp/2.23.10.0 A" },
+        });
+        if (!res.ok) {
+          failures.push(`/${biz.slug} → HTTP ${res.status}`);
+          continue;
+        }
+        const html = await res.text();
+        const ogImageMatch = html.match(/property="og:image"\s+content="([^"]+)"/);
+        if (!ogImageMatch) {
+          failures.push(`/${biz.slug} → no og:image tag in response`);
+          continue;
+        }
+        if (!ogImageMatch[1].includes(biz.ogImageFilename!)) {
+          failures.push(
+            `/${biz.slug} → og:image is "${ogImageMatch[1]}", expected to contain "${biz.ogImageFilename}"`
+          );
+          continue;
+        }
+        successes.push(`/${biz.slug} → ${ogImageMatch[1]}`);
+      }
+
+      if (failures.length > 0) {
+        throw new Error(`${failures.length} slug(s) failed OG check:\n       ${failures.join("\n       ")}`);
+      }
+
+      return successes.join("\n       ");
+    } finally {
+      killServer();
+    }
+  }));
+
   // ── Print results ──────────────────────────────────────────────────────────
   let allPassed = true;
   for (const r of results) {

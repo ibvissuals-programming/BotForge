@@ -183,6 +183,13 @@ const server = http.createServer(async (req, res) => {
   const filePath = path.join(DIST, pathname);
   if (tryServeFile(res, filePath)) return;
 
+  // 1b. Try directory-index: /<slug> → dist/public/<slug>/index.html
+  //     inject-og.mjs creates these at build time with correct per-business OG
+  //     tags. Serving them here means scrapers AND browsers get the enriched
+  //     HTML without any cross-container localhost:8080 call at request time.
+  const dirIndexPath = path.join(DIST, pathname, "index.html");
+  if (tryServeFile(res, dirIndexPath)) return;
+
   // 2. Extract the first path segment as a potential business slug.
   const slug = pathname.replace(/^\//, "").split("/")[0];
 

@@ -19,8 +19,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, "../dist/public");
 
 // Production base URL — used to build absolute og:image and og:url values.
-// Update this if the app is ever moved to a custom domain.
-const BASE_URL = "https://bot-forge--xcoderib.replit.app";
+// Resolved in order: explicit override → REPLIT_DEV_DOMAIN (injected by Replit
+// in both dev and production containers) → hardcoded fallback for the known
+// production domain. Update the fallback if the app moves to a custom domain.
+const BASE_URL =
+  process.env.VITE_PUBLIC_URL ||
+  (process.env.REPLIT_DEV_DOMAIN
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+    : "https://bot-forge--xcoderib.replit.app");
 
 const BUSINESSES = [
   {
