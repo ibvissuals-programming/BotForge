@@ -24,6 +24,7 @@ import {
   HelpCircle,
   Search,
   Activity,
+  Play,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { buildShareableUrl, buildSlugUrl } from "@/lib/configUrl";
@@ -1495,14 +1496,26 @@ export default function AdminPage() {
                 </p>
               )}
             </div>
-            <button
-              onClick={handleSignOut}
-              title="Sign out"
-              className="flex items-center gap-1.5 text-[12px] text-[#555] hover:text-[#f0f0f0] transition-colors mt-1 px-3 py-2 rounded-xl hover:bg-[#1f1f1f]"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign out
-            </button>
+            <div className="flex flex-col items-end gap-1 mt-1">
+              <a
+                href="/showcase"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Showcase deck in a new tab"
+                className="flex items-center gap-1.5 text-[12px] text-[#555] hover:text-[#7c6af7] transition-colors px-3 py-2 rounded-xl hover:bg-[#1f1f1f]"
+              >
+                <Play className="w-3.5 h-3.5" />
+                Showcase
+              </a>
+              <button
+                onClick={handleSignOut}
+                title="Sign out"
+                className="flex items-center gap-1.5 text-[12px] text-[#555] hover:text-[#f0f0f0] transition-colors px-3 py-2 rounded-xl hover:bg-[#1f1f1f]"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            </div>
           </div>
         </header>
 
