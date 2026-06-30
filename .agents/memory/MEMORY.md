@@ -1,2 +1,3 @@
 - [artifact.toml env var section](artifact-toml-env-section.md) — only `[services.env]` is recognised for production run env vars; any other name is silently ignored and causes PORT-not-set crash.
 - [Slug routing architecture](slug-routing.md) — businesses have a short `slug` TEXT UNIQUE column; routes are `/:slug` → ChatPage; `/` shows AdminGate unless `#c=`/`?c=` present; old hash links still work.
+- [og_image_filename wipe by admin PUT](og-image-put-wipe.md) — PUT route must use COALESCE for any column not in the admin edit form, or admin saves silently wipe DB-only fields to NULL.

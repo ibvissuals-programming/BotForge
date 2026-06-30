@@ -180,7 +180,10 @@ export async function runMigrations(): Promise<void> {
             instagram, personality, welcome_msg, accent_color, slug, previous_slugs,
             background_theme, light_theme_palette, light_theme_style, og_image_filename)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE
+           SET og_image_filename = EXCLUDED.og_image_filename
+           WHERE businesses.og_image_filename IS NULL
+              OR businesses.og_image_filename = ''`,
         [
           biz.id,
           biz.bizName,
@@ -235,7 +238,7 @@ export async function runMigrations(): Promise<void> {
           ELSE og_image_filename
         END
         WHERE id IN ('styled-by-fortune', 'rossy-cakes-events-management')
-          AND og_image_filename IS NULL
+          AND (og_image_filename IS NULL OR og_image_filename = '')
       `);
       logger.info("DB migration: og_image_filename backfill complete ✅");
     } catch (err) {

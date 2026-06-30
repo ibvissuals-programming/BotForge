@@ -267,7 +267,8 @@ router.put("/businesses/:id", requireAdmin, async (req, res): Promise<void> => {
        SET biz_name=$1, biz_type=$2, phone=$3, services=$4, location=$5,
            how_to_order=$6, instagram=$7, personality=$8, welcome_msg=$9,
            accent_color=$10, background_theme=$11, light_theme_palette=$12,
-           light_theme_style=$13, og_image_filename=$14,
+           light_theme_style=$13,
+           og_image_filename = COALESCE($14, og_image_filename),
            slug = CASE WHEN $15::TEXT = '' THEN slug ELSE $15 END,
            previous_slugs = CASE
              WHEN $15::TEXT != ''
