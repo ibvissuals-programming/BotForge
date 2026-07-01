@@ -14,16 +14,18 @@ The `og_image_filename` column must be protected in the PUT route with `COALESCE
 
 ## Self-healing migration (belt-and-suspenders)
 
-The seed INSERT in `db-migrate.ts` was changed from `ON CONFLICT (id) DO NOTHING` to:
+The seed INSERT in `db-migrate.ts` ON CONFLICT clause self-heals two columns now: `og_image_filename` (if NULL/empty) and `services` (if drifted from the seed's EXCLUDED value):
 ```sql
 ON CONFLICT (id) DO UPDATE
-  SET og_image_filename = EXCLUDED.og_image_filename
-  WHERE businesses.og_image_filename IS NULL
-     OR businesses.og_image_filename = ''
+  SET og_image_filename = EXCLUDED.og_image_filename,
+      services = EXCLUDED.services
+  WHERE (businesses.og_image_filename IS NULL
+     OR businesses.og_image_filename = '')
+     OR businesses.services != EXCLUDED.services
 ```
 
-This means every server boot restores `og_image_filename` from seed data if it was wiped to NULL or empty string. The backfill WHERE clause was also extended to `AND (og_image_filename IS NULL OR og_image_filename = '')`.
+This means every server boot restores `og_image_filename` from seed data if wiped, AND restores `services` to the seed's canonical value (e.g. Rossy's full cake + chops menu) if it ever drifts or gets truncated on a fresh instance. Extending this pattern to any other seed-managed column just means adding it to both the SET and WHERE clauses the same way.
 
 ## Recurring cycle (now broken)
 Before fix: boot → backfill sets 'rossy.jpg' → admin edits → PUT sets NULL → broken until next boot.
-After fix: PUT preserves existing value via COALESCE → value never wiped again. Boot-time seed DO UPDATE is a safety net if it somehow becomes NULL anyway.
+After fix: PUT preserves existing value via COALESCE → value never wiped again. Boot-time seed DO UPDATE is a safety net if it somehow becomes NULL/drifted anyway — now covers `services` too, not just `og_image_filename`.
