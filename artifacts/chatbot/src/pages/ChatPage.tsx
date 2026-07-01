@@ -816,7 +816,7 @@ export default function ChatPage() {
 
             {/* Text input row */}
             <div className="p-3 pt-2">
-              <div className="flex items-end gap-2 bg-card border border-border rounded-[24px] p-1.5 pr-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+              <div className="flex items-end gap-2 bg-card border border-border rounded-[24px] p-1.5 pr-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all text-foreground">
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -850,6 +850,8 @@ export default function ChatPage() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .chat-light-theme textarea { color: hsl(var(--foreground)); }
+        .chat-light-theme textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
       `}</style>
     </div>
   );
