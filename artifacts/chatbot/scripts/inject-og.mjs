@@ -19,14 +19,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, "../dist/public");
 
 // Production base URL — used to build absolute og:image and og:url values.
-// Resolved in order: explicit override → REPLIT_DEV_DOMAIN (injected by Replit
-// in both dev and production containers) → hardcoded fallback for the known
-// production domain. Update the fallback if the app moves to a custom domain.
+// Resolved in order:
+//   1. VITE_PUBLIC_URL — explicit override (set in artifact.toml or as a secret)
+//   2. REPLIT_DEV_DOMAIN — used ONLY when it is a real public domain (not an
+//      internal *.worf.replit.dev tunnel). Replit injects a worf tunnel URL in
+//      build containers; that URL is unreachable by WhatsApp scrapers, so we
+//      must skip it and fall through to the hardcoded fallback instead.
+//   3. Hardcoded fallback — the known production deployment domain. Update this
+//      whenever the app is re-deployed to a new Replit instance.
+const _replitDomain = process.env.REPLIT_DEV_DOMAIN;
+const _isPublicDomain = _replitDomain && !_replitDomain.includes(".worf.replit.dev");
 const BASE_URL =
   process.env.VITE_PUBLIC_URL ||
-  (process.env.REPLIT_DEV_DOMAIN
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : "https://bot-forge--xcoderib.replit.app");
+  (_isPublicDomain ? `https://${_replitDomain}` : "https://bot-forge--ib-build.replit.app");
 
 const BUSINESSES = [
   {

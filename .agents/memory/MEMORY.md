@@ -2,3 +2,4 @@
 - [Slug routing architecture](slug-routing.md) — businesses have a short `slug` TEXT UNIQUE column; routes are `/:slug` → ChatPage; `/` shows AdminGate unless `#c=`/`?c=` present; old hash links still work.
 - [og_image_filename wipe by admin PUT](og-image-put-wipe.md) — PUT route must use COALESCE for any column not in the admin edit form, or admin saves silently wipe DB-only fields to NULL.
 - [og-server cross-container localhost bug](og-server-cross-container.md) — og-server.mjs must never call localhost:8080 in prod; chatbot and api-server are separate autoscale containers. Fix: directory-index fallback serves inject-og.mjs pre-built HTML.
+- [inject-og worf domain bug](inject-og-worf-domain.md) — REPLIT_DEV_DOMAIN in build containers is always a *.worf.replit.dev tunnel, not the public deployment domain. inject-og.mjs must filter it out or og:image URLs are unreachable by WhatsApp.
