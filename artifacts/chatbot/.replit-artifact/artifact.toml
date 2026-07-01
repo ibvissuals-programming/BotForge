@@ -27,6 +27,9 @@ args = ["pnpm", "--filter", "@workspace/chatbot", "run", "build"]
 PORT = "3000"
 BASE_PATH = "/"
 NODE_ENV = "production"
+# Public deployment domain — inject-og.mjs reads this to build absolute og:image
+# URLs. Update this value whenever the app is re-deployed to a new Replit instance.
+VITE_PUBLIC_URL = "https://bot-forge--ib-build.replit.app"
 
 [services.production.run]
 # og-server.mjs replaces the static file server so it can inject per-business
